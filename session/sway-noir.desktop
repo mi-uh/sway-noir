@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Sway Noir
+Comment=Sway with the Sway Noir profile
+Exec=/usr/local/bin/start-sway-noir
+TryExec=/usr/local/bin/start-sway-noir
+Type=Application
+DesktopNames=sway

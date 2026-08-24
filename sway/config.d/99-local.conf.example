@@ -1,0 +1,15 @@
+# Personal settings belong here. The installer creates 99-local.conf once and
+# never overwrites it during updates.
+
+# Terminal example:
+# unbindsym $mod+Return
+# bindsym $mod+Return exec kitty
+
+# Keyboard example:
+# input type:keyboard xkb_layout us
+
+# Multi-monitor example:
+# output eDP-1 position 0 0 scale 1
+# output DP-1 position 1920 0 scale 1.25
+# workspace 1 output eDP-1
+# workspace 6 output DP-1

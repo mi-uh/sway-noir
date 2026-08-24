@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+readonly config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
+readonly profile_dir="$config_root/sway-noir"
+readonly sway_config="$profile_dir/sway/config"
+
+if [[ ! -f "$sway_config" ]]; then
+    printf 'Sway Noir is not installed at %s\n' "$profile_dir" >&2
+    exit 1
+fi
+
+cd -- "$profile_dir"
+
+if command -v start-sway >/dev/null 2>&1; then
+    exec start-sway --config "$sway_config"
+fi
+
+exec sway --config "$sway_config"

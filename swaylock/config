@@ -1,0 +1,25 @@
+color=111315
+font=IBM Plex Sans
+font-size=20
+indicator-radius=90
+indicator-thickness=8
+inside-color=171a1df2
+inside-clear-color=171a1df2
+inside-caps-lock-color=171a1df2
+inside-ver-color=171a1df2
+inside-wrong-color=171a1df2
+ring-color=34383dff
+ring-clear-color=9b2c3dff
+ring-caps-lock-color=d7d1c8ff
+ring-ver-color=9b2c3dff
+ring-wrong-color=d95763ff
+key-hl-color=d95763ff
+bs-hl-color=d95763ff
+text-color=d7d1c8ff
+text-clear-color=d7d1c8ff
+text-caps-lock-color=d7d1c8ff
+text-ver-color=d7d1c8ff
+text-wrong-color=d95763ff
+line-color=00000000
+separator-color=00000000
+

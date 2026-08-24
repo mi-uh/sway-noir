@@ -1,0 +1,26 @@
+font=IBM Plex Sans 10
+background-color=#171a1df2
+text-color=#d7d1c8ff
+border-color=#9b2c3dff
+border-size=2
+border-radius=0
+width=360
+margin=12
+padding=12
+default-timeout=6000
+ignore-timeout=0
+max-visible=4
+anchor=top-right
+layer=overlay
+icons=1
+max-icon-size=48
+format=<b>%s</b>\n%b
+group-by=app-name
+
+[urgency=low]
+border-color=#34383dff
+
+[urgency=high]
+border-color=#d95763ff
+default-timeout=0
+
