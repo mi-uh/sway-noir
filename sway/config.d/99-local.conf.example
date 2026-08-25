@@ -5,7 +5,14 @@
 # bindsym --no-warn $mod+Return exec alacritty
 
 # Keyboard example:
-# input type:keyboard xkb_layout us
+# input type:keyboard xkb_layout de
+
+# Restore libinput's adaptive pointer acceleration:
+# input type:pointer accel_profile adaptive
+# input type:touchpad accel_profile adaptive
+
+# Disable Gammastep:
+# set $gammastep_command true
 
 # Multi-monitor example:
 # output eDP-1 position 0 0 scale 1
