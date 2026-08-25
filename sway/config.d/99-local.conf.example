@@ -2,8 +2,7 @@
 # never overwrites it during updates.
 
 # Terminal example:
-# unbindsym $mod+Return
-# bindsym $mod+Return exec kitty
+# bindsym --no-warn $mod+Return exec alacritty
 
 # Keyboard example:
 # input type:keyboard xkb_layout us

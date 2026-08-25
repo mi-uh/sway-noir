@@ -9,7 +9,7 @@ set $right l
 
 # Sway's upstream default. Change this to use another terminal.
 set $term foot
-set $menu fuzzel --config=fuzzel/fuzzel.ini
+set $menu fuzzel --config=$SWAY_NOIR_DIR/fuzzel/fuzzel.ini
 
 floating_modifier $mod normal
 

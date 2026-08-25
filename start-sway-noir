@@ -3,7 +3,10 @@ set -euo pipefail
 
 readonly config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
 readonly profile_dir="$config_root/sway-noir"
+readonly SWAY_NOIR_DIR="$profile_dir"
 readonly sway_config="$profile_dir/sway/config"
+
+export SWAY_NOIR_DIR
 
 if [[ ! -f "$sway_config" ]]; then
     printf 'Sway Noir is not installed at %s\n' "$profile_dir" >&2
