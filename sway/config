@@ -11,6 +11,7 @@ set $right l
 set $term foot
 set $menu fuzzel --config=$SWAY_NOIR_DIR/fuzzel/fuzzel.ini
 
-floating_modifier $mod normal
+# Optional session commands can be disabled in 99-local.conf.
+set $gammastep_command gammastep -c $SWAY_NOIR_DIR/gammastep/config.ini
 
 include config.d/*.conf

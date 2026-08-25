@@ -9,30 +9,31 @@ application configuration.
 
 ## Requirements
 
-The default terminal is foot and can be changed in the local override. The
-optional packages enable night mode, media and brightness keys, and screenshots.
+The default terminal is foot and can be changed in the local override.
+Gammastep provides the enabled-by-default night mode. The optional packages
+enable media and brightness keys and screenshots.
 
 ### Fedora 44
 
 Core:
 
-    sudo dnf install sway swaybg swaylock waybar fuzzel mako foot \
+    sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \
         ibm-plex-sans-fonts wireplumber
 
 Optional:
 
-    sudo dnf install gammastep playerctl brightnessctl grim pulseaudio-utils
+    sudo dnf install playerctl brightnessctl grim pulseaudio-utils
 
 ### Debian 13 (Trixie)
 
 Core:
 
-    sudo apt install sway swaybg swaylock waybar fuzzel mako-notifier foot \
+    sudo apt install sway swaybg swaylock waybar fuzzel mako-notifier foot gammastep \
         fonts-ibm-plex wireplumber
 
 Optional:
 
-    sudo apt install gammastep playerctl brightnessctl grim pulseaudio-utils
+    sudo apt install playerctl brightnessctl grim pulseaudio-utils
 
 The `fonts-ibm-plex` package is in Debian's `contrib` component, which must be
 enabled in the APT sources.
@@ -41,15 +42,16 @@ enabled in the APT sources.
 
 Core:
 
-    sudo pacman -S sway swaybg swaylock waybar fuzzel mako foot \
+    sudo pacman -S sway swaybg swaylock waybar fuzzel mako foot gammastep \
         ttf-ibm-plex wireplumber
 
 Optional:
 
-    sudo pacman -S gammastep playerctl brightnessctl grim libpulse
+    sudo pacman -S playerctl brightnessctl grim libpulse
 
 Waybar includes a battery indicator for notebooks; it stays hidden when no
-battery is available. Gammastep support is included as an optional night mode.
+battery is available. Gammastep starts automatically with the included night
+mode configuration.
 
 The configuration is hardware-neutral and uses Sway's automatic output
 detection. It is developed and tested on Fedora 44 with Sway 1.11; other Linux
@@ -94,10 +96,10 @@ Waybar uses one generic configuration on every connected output. Users who
 want different bars per output can replace waybar/config.jsonc in their local
 profile.
 
-To enable the optional night mode, install Gammastep and uncomment its line in
-sway/config.d/91-autostart.conf. It uses fixed local times by default: 6100 K
-from 07:00 and 5600 K from 20:00, without location access. The configuration
-also includes commented GeoClue and manual-location alternatives.
+Gammastep uses fixed local times by default: 6100 K from 07:00 and 5600 K from
+20:00, without location access. To disable it, set `$gammastep_command` to
+`true` in sway/config.d/99-local.conf. The configuration also includes
+commented GeoClue and manual-location alternatives.
 
 ## Keys
 

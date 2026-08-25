@@ -14,7 +14,7 @@ files=(
     "sway/config.d/50-input.conf"
     "sway/config.d/60-keybindings.conf"
     "sway/config.d/90-bar.conf"
-    "sway/config.d/91-autostart.conf"
+    "sway/config.d/99-startup.conf"
     "sway/backgrounds/cozy-cyberpunk-room.png"
     "waybar/config.jsonc"
     "waybar/style.css"

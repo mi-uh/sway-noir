@@ -11,7 +11,7 @@
 # input type:pointer accel_profile adaptive
 # input type:touchpad accel_profile adaptive
 
-# Disable Gammastep:
+# Disable Gammastep by replacing its startup command with a no-op:
 # set $gammastep_command true
 
 # Multi-monitor example:
