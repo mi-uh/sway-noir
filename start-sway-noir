@@ -13,7 +13,7 @@ if [[ ! -f "$sway_config" ]]; then
     exit 1
 fi
 
-cd -- "$profile_dir"
+cd -- "$HOME"
 
 if command -v start-sway >/dev/null 2>&1; then
     exec start-sway --config "$sway_config"
