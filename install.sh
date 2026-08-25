@@ -11,6 +11,7 @@ files=(
     "sway/config"
     "sway/config.d/20-outputs.conf"
     "sway/config.d/40-look.conf"
+    "sway/config.d/50-input.conf"
     "sway/config.d/60-keybindings.conf"
     "sway/config.d/90-bar.conf"
     "sway/config.d/91-autostart.conf"
