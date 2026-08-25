@@ -74,12 +74,15 @@ Start it from a TTY:
 
 To add a Sway Noir entry to a display manager such as GDM:
 
-    sudo install -Dm755 start-sway-noir /usr/local/bin/start-sway-noir
+    sudo install -Dm755 session/start-sway-noir /usr/local/bin/start-sway-noir
     sudo install -Dm644 session/sway-noir.desktop \
         /usr/share/wayland-sessions/sway-noir.desktop
 
-The system-wide session entry is optional. Remove those two installed files to
-remove it again.
+The system-wide launcher is a small wrapper that starts the current profile
+launcher below `~/.config/sway-noir`. It only needs to be installed once;
+subsequent runs of `./install.sh` update the profile launcher without requiring
+root access. The system-wide session entry is optional. Remove those two
+installed files to remove it again.
 
 ## Personal configuration
 

@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+readonly profile_launcher="${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir/start-sway-noir"
+
+if [ ! -x "$profile_launcher" ]; then
+    printf 'Sway Noir launcher is not installed at %s\n' "$profile_launcher" >&2
+    exit 1
+fi
+
+exec "$profile_launcher" "$@"
