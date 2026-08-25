@@ -1,119 +1,110 @@
 # Sway Noir
 
-A warm, low-glare Sway setup with charcoal surfaces, muted burgundy accents,
-Vim-style navigation, and matching Waybar, Fuzzel, Mako, swaylock, and
-wallpaper artwork.
+Sway Noir is a standalone Sway profile with a warm charcoal theme, muted
+burgundy accents and Vim-style navigation. It installs below
+`~/.config/sway-noir` without replacing an existing Sway configuration.
 
-Sway Noir is a standalone profile. It does not replace an existing Sway or
-application configuration.
+![Sway Noir desktop with Waybar and Fuzzel](sway-noir-screenshot.webp)
 
-## Requirements
+## Features
 
-The default terminal is foot and can be changed in the local override.
-Gammastep provides the enabled-by-default night mode. The optional packages
-enable media and brightness keys and screenshots.
+- Matching Waybar, Fuzzel, Mako, swaylock and wallpaper theme
+- Automatic output detection without a fixed layout or workspace assignments
+- Vim-style focus, movement and resize bindings
+- Touchpad tapping and three- or four-finger workspace gestures
+- Flat pointer profile for mice and touchpads
+- Automatic night color through Gammastep
+- Manual locking without automatic lock or suspend
+- Update-safe overrides in `sway/config.d/99-local.conf`
 
-### Fedora 44
-
-Core:
-
-    sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \
-        ibm-plex-sans-fonts wireplumber
-
-Optional:
-
-    sudo dnf install playerctl brightnessctl grim pulseaudio-utils
-
-### Debian 13 (Trixie)
-
-Core:
-
-    sudo apt install sway swaybg swaylock waybar fuzzel mako-notifier foot gammastep \
-        fonts-ibm-plex wireplumber
-
-Optional:
-
-    sudo apt install playerctl brightnessctl grim pulseaudio-utils
-
-The `fonts-ibm-plex` package is in Debian's `contrib` component, which must be
-enabled in the APT sources.
-
-### Arch Linux
-
-Core:
-
-    sudo pacman -S sway swaybg swaylock waybar fuzzel mako foot gammastep \
-        ttf-ibm-plex wireplumber
-
-Optional:
-
-    sudo pacman -S playerctl brightnessctl grim libpulse
-
-Waybar includes a battery indicator for notebooks; it stays hidden when no
-battery is available. Gammastep starts automatically with the included night
-mode configuration.
-
-The configuration is hardware-neutral and uses Sway's automatic output
-detection. It is developed and tested on Fedora 44 with Sway 1.11; other Linux
-distributions may require different session setup.
+The profile is developed and tested on Fedora 44 with Sway 1.11. Other
+distributions may work but are not tested.
 
 ## Install
 
-    ./install.sh
+Install the required Fedora packages:
 
-This installs the profile below:
+```bash
+sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \
+    ibm-plex-sans-fonts wireplumber playerctl brightnessctl grim \
+    pulseaudio-utils
+```
 
-    ${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir
+On other distributions, install the equivalent packages. Debian names Mako
+`mako-notifier` and provides `fonts-ibm-plex` through `contrib`; Arch provides
+the font as `ttf-ibm-plex`.
 
-Existing files at that destination are backed up below
-~/.config/sway-setup-backups. The installer never modifies ~/.config/sway or
-other application configuration directories. Sway Noir provides manual locking,
-but deliberately does not configure automatic locking or suspend.
+Clone and install the profile:
 
-Start it from a TTY:
+```bash
+git clone https://github.com/mi-uh/sway-noir.git
+cd sway-noir
+./install.sh
+```
 
-    ~/.config/sway-noir/start-sway-noir
+Start it from a TTY with `~/.config/sway-noir/start-sway-noir`. For an optional
+GDM entry, install the system wrapper and session file once:
 
-To add a Sway Noir entry to a display manager such as GDM:
+```bash
+sudo install -Dm755 session/start-sway-noir /usr/local/bin/start-sway-noir
+sudo install -Dm644 session/sway-noir.desktop \
+    /usr/share/wayland-sessions/sway-noir.desktop
+```
 
-    sudo install -Dm755 session/start-sway-noir /usr/local/bin/start-sway-noir
-    sudo install -Dm644 session/sway-noir.desktop \
-        /usr/share/wayland-sessions/sway-noir.desktop
+Then select **Sway Noir** when logging in.
 
-The system-wide launcher is a small wrapper that starts the current profile
-launcher below `~/.config/sway-noir`. It only needs to be installed once;
-subsequent runs of `./install.sh` update the profile launcher without requiring
-root access. The system-wide session entry is optional. Remove those two
-installed files to remove it again.
+## Configure and update
 
-## Personal configuration
+The installer creates `~/.config/sway-noir/sway/config.d/99-local.conf` once
+and never overwrites it. Use it for terminal, keyboard, input, monitor and
+workspace overrides. Examples are included.
 
-The installer creates sway/config.d/99-local.conf once and never overwrites it.
-Use it for a different terminal, keyboard layout, monitor placement, scaling,
-or workspace-to-output assignments. Commented examples are included.
+Gammastep starts automatically. To disable it for future sessions, add this to
+`99-local.conf`, then log out and back in:
 
-Waybar uses one generic configuration on every connected output. Users who
-want different bars per output can replace waybar/config.jsonc in their local
-profile.
+```sway
+set $gammastep_command true
+```
 
-Gammastep uses fixed local times by default: 6100 K from 07:00 and 5600 K from
-20:00, without location access. To disable it, set `$gammastep_command` to
-`true` in sway/config.d/99-local.conf. The configuration also includes
-commented GeoClue and manual-location alternatives.
+Update from the cloned repository:
+
+```bash
+git pull
+./install.sh
+```
 
 ## Keys
 
-- Super+h/j/k/l: focus
-- Super+Shift+h/j/k/l: move windows
-- Super+b / Super+v: horizontal / vertical split
-- Super+r, then h/j/k/l: resize mode
-- Super+1..0: workspaces
-- Super+p / Super+n: previous / next workspace on the current output
-- Super+d: Fuzzel
-- Super+Enter: terminal
-- Super+Shift+x: lock
-- Super+Shift+q: close
-- Super+Shift+e: exit Sway
+- `Super+h/j/k/l`: focus
+- `Super+Shift+h/j/k/l`: move windows
+- `Super+r`, then `h/j/k/l`: resize mode
+- `Super+1..0`: switch workspace
+- `Super+Shift+1..0`: move window to workspace
+- `Super+p/n`: cycle workspaces on the focused output
+- `Super+d`: Fuzzel
+- `Super+Enter`: terminal
+- `Super+Shift+x`: lock
+- `Super+Shift+q/e`: close window / exit Sway
+
+## Backup and removal
+
+Before replacing files, the installer stores a timestamped backup below
+`${XDG_CONFIG_HOME:-$HOME/.config}/sway-setup-backups`. Copy the selected
+backup's `sway-noir` contents back into the profile directory to restore it.
+
+```bash
+config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
+cp -a "$config_root/sway-setup-backups/YYYYMMDD-HHMMSS/sway-noir/." \
+    "$config_root/sway-noir/"
+```
+
+Remove Sway Noir while keeping its backups:
+
+```bash
+rm -r "${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir"
+sudo rm -f /usr/local/bin/start-sway-noir \
+    /usr/share/wayland-sessions/sway-noir.desktop
+```
 
 ## License
 
