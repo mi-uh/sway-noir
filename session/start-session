@@ -1,0 +1,29 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+readonly profile_dir="${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir"
+
+if (( $# == 0 )); then
+    printf 'Missing Gammastep command\n' >&2
+    exit 2
+fi
+
+# QT_QPA_PLATFORMTHEME deliberately stays in the Sway process tree. Do not add
+# it to this activation-environment import.
+dbus-update-activation-environment --systemd \
+    DISPLAY \
+    WAYLAND_DISPLAY \
+    SWAYSOCK \
+    XDG_CURRENT_DESKTOP \
+    XDG_SESSION_DESKTOP \
+    XDG_SESSION_TYPE
+
+# systemctl waits for the target start job to finish before applications below
+# can activate a desktop portal.
+systemctl --user start sway-noir-session.target
+
+waybar \
+    --config "$profile_dir/waybar/config.jsonc" \
+    --style "$profile_dir/waybar/style.css" &
+mako --config "$profile_dir/mako/config" &
+"$@" &

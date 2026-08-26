@@ -1,0 +1,7 @@
+# Managed by Sway Noir.
+[Unit]
+Description=Sway Noir graphical session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

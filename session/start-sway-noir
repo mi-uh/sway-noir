@@ -1,4 +1,5 @@
 #!/bin/sh
+# Managed by Sway Noir.
 set -eu
 
 readonly profile_launcher="${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir/start-sway-noir"
