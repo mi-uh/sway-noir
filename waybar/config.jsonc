@@ -33,10 +33,10 @@
   },
   "sway/window": {
     "format": "{title}",
-    "max-length": 90,
+    "max-length": 50,
     "rewrite": {
-      "(.*) – Firefox": "$1",
-      "(.*) – VS Code": "$1"
+      "(.*) - Mozilla Firefox": "$1",
+      "(.*) - Visual Studio Code": "$1"
     }
   },
   "tray": {
