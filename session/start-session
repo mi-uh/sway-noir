@@ -3,6 +3,10 @@ set -euo pipefail
 
 readonly profile_dir="${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir"
 
+warn() {
+    printf 'Warning: %s\n' "$*" >&2
+}
+
 if (( $# == 0 )); then
     printf 'Missing Gammastep command\n' >&2
     exit 2
@@ -18,9 +22,44 @@ dbus-update-activation-environment --systemd \
     XDG_SESSION_DESKTOP \
     XDG_SESSION_TYPE
 
+# A portal may already be running with an incomplete activation environment
+# from before Sway was ready. Stop both the frontend and its backends so the
+# imported Sway environment and sway-portals.conf are guaranteed to take
+# effect below. Stopping inactive units is harmless.
+if ! systemctl --user stop xdg-desktop-portal.service; then
+    warn 'Could not stop xdg-desktop-portal.service; continuing session startup.'
+fi
+if ! systemctl --user stop \
+    xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service; then
+    warn 'Could not stop all desktop portal backends; continuing session startup.'
+fi
+
+# Since xdg-desktop-portal 1.21, portal units refuse to start before
+# graphical-session.target. Clear any failed early activation before bringing
+# up the graphical session.
+if ! systemctl --user reset-failed \
+    xdg-desktop-portal.service \
+    xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service; then
+    warn 'Could not reset failed desktop portal units; continuing session startup.'
+fi
+
 # systemctl waits for the target start job to finish before applications below
 # can activate a desktop portal.
-systemctl --user start sway-noir-session.target
+session_target_ready=true
+if ! systemctl --user start sway-noir-session.target; then
+    warn 'Could not start sway-noir-session.target; desktop applications will still be started.'
+    session_target_ready=false
+fi
+
+# Queue the portal with the newly imported environment. It will activate the
+# GTK Settings backend, which publishes the dark-mode preference. Do not make
+# unrelated desktop applications depend on successful portal activation.
+if [[ "$session_target_ready" == true ]] &&
+   ! systemctl --user start --no-block xdg-desktop-portal.service; then
+    warn 'Could not queue xdg-desktop-portal.service; continuing session startup.'
+fi
 
 waybar \
     --config "$profile_dir/waybar/config.jsonc" \

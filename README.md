@@ -27,7 +27,7 @@ Install the required Fedora packages:
 ```bash
 sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \
     ibm-plex-sans-fonts playerctl brightnessctl grim pulseaudio-utils \
-    dconf gsettings-desktop-schemas pipewire wireplumber \
+    pavucontrol dconf gsettings-desktop-schemas pipewire wireplumber \
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr
 ```
 
@@ -54,9 +54,19 @@ Answer yes to every question automatically:
 ./install.sh -y
 ```
 
+Install only the user profile without prompts or optional system changes:
+
+```bash
+./install.sh --profile-only
+```
+
 Only the login-screen entry requires `sudo`. Existing unrelated files are not
 overwritten. Replaced Sway Noir files are backed up below
 `~/.config/sway-setup-backups`.
+
+The installer validates its required commands and the profile's runtime
+commands before changing files. If dependencies are missing, it exits with the
+Fedora package command needed to install them.
 
 GNOME and Plasma are not required. They can remain installed alongside Sway
 Noir, which also works on a Sway-only system.
@@ -119,6 +129,8 @@ The uninstaller preserves:
 ## Notes
 
 - Dark mode is not guaranteed to be honored by every application.
+- Sway Noir starts or restarts the desktop portal only after the graphical
+  session is ready, as required by xdg-desktop-portal 1.21 and newer.
 - Simultaneous graphical sessions for the same Unix user are not supported.
 - Other distributions may work but are currently untested.
 
