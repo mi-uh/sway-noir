@@ -49,13 +49,11 @@
     "on-click": "pavucontrol"
   },
   "network": {
-    "format": "{ifname}",
     "format-wifi": "{essid} ({signalStrength}%)",
-    "format-ethernet": "{ifname}",
-    "format-disconnected": "",
-    "tooltip-format": "{ipaddr}/{cidr}",
-    "tooltip-format-wifi": "{ipaddr}/{cidr}",
-    "tooltip-format-ethernet": "{ipaddr}/{cidr}",
+    "format-ethernet": "ETH",
+    "format-disconnected": "NET down",
+    "tooltip-format-wifi": "{ifname} – {ipaddr}/{cidr}",
+    "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
     "tooltip-format-disconnected": "Disconnected",
     "max-length": 50
   },

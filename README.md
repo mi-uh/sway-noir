@@ -1,9 +1,7 @@
 # Sway Noir
 
-Sway Noir is a standalone Sway profile for Fedora with a warm dark appearance,
-Vim-style navigation, and a deliberately lean desktop setup. It does not
-replace an existing Sway configuration and is installed separately below
-`~/.config/sway-noir`.
+Sway Noir is a standalone Sway profile with a warm dark appearance,
+Vim-style navigation, and a deliberately lean desktop setup.
 
 ![Sway Noir with Waybar and Fuzzel](sway-noir-screenshot.webp)
 
@@ -12,13 +10,8 @@ replace an existing Sway configuration and is installed separately below
 - A matching theme for Waybar, Fuzzel, Mako, swaylock, and the wallpaper
 - Vim-style window, focus, and workspace controls
 - Automatic output detection without a hard-coded hardware layout
-- Night color through Gammastep and manual locking without automatic suspend
-- GTK/WLR portals for file dialogs, screenshots, and screen sharing
+- Night color through Gammastep
 - Optional login-screen integration and application dark mode
-
-Sway Noir is intended for users who prefer a focused Wayland desktop and want
-to keep personal monitor, input, and key-binding changes in a single local
-configuration file. It is developed and tested on Fedora 44 with Sway 1.11.
 
 ## Installation
 
@@ -66,10 +59,11 @@ overwritten. Replaced Sway Noir files are backed up below
 
 The installer validates its required commands and the profile's runtime
 commands before changing files. If dependencies are missing, it exits with the
-Fedora package command needed to install them.
+Fedora package command needed to install them. It should work on Debian- or
+Arch-based systems as well, but so far it has been tested only on Fedora 44.
 
 GNOME and Plasma are not required. They can remain installed alongside Sway
-Noir, which also works on a Sway-only system.
+Noir. It also works on a Sway-only system.
 
 ## Usage
 
@@ -87,6 +81,7 @@ Important key bindings:
 - `Super+Shift+h/j/k/l`: move windows
 - `Super+r`: enter resize mode
 - `Super+1..0`: switch workspaces
+- `Super+n/p`: switch to the next/previous workspace
 - `Super+Shift+x`: lock the screen
 - `Super+Shift+e`: exit Sway
 
@@ -131,8 +126,7 @@ The uninstaller preserves:
 - Dark mode is not guaranteed to be honored by every application.
 - Sway Noir starts or restarts the desktop portal only after the graphical
   session is ready, as required by xdg-desktop-portal 1.21 and newer.
-- Simultaneous graphical sessions for the same Unix user are not supported.
-- Other distributions may work but are currently untested.
+- Distributions other than Fedora may work but are currently untested.
 
 ## License
 
