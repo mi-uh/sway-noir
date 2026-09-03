@@ -113,9 +113,6 @@ window#waybar.empty #window {
 }
 
 #clock {
-    color: #ebe5dc;
-    background: alpha(@accent_surface, 0.94);
-    border-left-color: alpha(@accent, 0.90);
     border-right: 1px solid alpha(@accent, 0.95);
     border-radius: 0 10px 10px 0;
     font-weight: 600;
