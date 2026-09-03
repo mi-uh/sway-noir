@@ -15,12 +15,21 @@ Vim-style navigation, and a deliberately lean desktop setup.
 
 ## Installation
 
-Install the required Fedora packages:
+Install the required packages:
 
+Fedora:
 ```bash
 sudo dnf install sway swaybg swayidle swaylock waybar fuzzel mako foot gammastep \
     ibm-plex-sans-fonts playerctl brightnessctl grim pulseaudio-utils \
     pavucontrol dconf gsettings-desktop-schemas pipewire wireplumber \
+    xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr
+```
+
+Debian and Ubuntu:
+```bash
+sudo apt install sway swaybg swayidle swaylock waybar fuzzel mako-notifier foot \
+    gammastep fonts-ibm-plex playerctl brightnessctl grim pulseaudio-utils \
+    pavucontrol dconf-cli gsettings-desktop-schemas pipewire wireplumber \
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr
 ```
 
