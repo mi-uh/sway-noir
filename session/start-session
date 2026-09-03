@@ -7,10 +7,13 @@ warn() {
     printf 'Warning: %s\n' "$*" >&2
 }
 
-if (( $# == 0 )); then
-    printf 'Missing Gammastep command\n' >&2
+if (( $# < 2 )); then
+    printf 'Missing lock or Gammastep command\n' >&2
     exit 2
 fi
+
+readonly lock_command="$1"
+shift
 
 # QT_QPA_PLATFORMTHEME deliberately stays in the Sway process tree. Do not add
 # it to this activation-environment import.
@@ -61,6 +64,7 @@ if [[ "$session_target_ready" == true ]] &&
     warn 'Could not queue xdg-desktop-portal.service; continuing session startup.'
 fi
 
+swayidle -w before-sleep "$lock_command" &
 waybar \
     --config "$profile_dir/waybar/config.jsonc" \
     --style "$profile_dir/waybar/style.css" &

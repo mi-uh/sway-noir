@@ -45,6 +45,7 @@ for command_name in \
     playerctl \
     sway \
     swaybg \
+    swayidle \
     swaylock \
     systemctl \
     waybar; do
@@ -101,6 +102,12 @@ assert_file "$test_config/sway-noir/sway/config.d/99-local.conf"
 assert_same "$repo_root/mako/config" "$test_config/sway-noir/mako/config"
 assert_same "$repo_root/xdg-desktop-portal/sway-portals.conf" \
     "$test_config/xdg-desktop-portal/sway-portals.conf"
+grep -Fqx 'bindsym $mod+Shift+x exec $lock_command' \
+    "$repo_root/sway/config.d/60-keybindings.conf" ||
+    fail 'manual locking does not use the shared lock command'
+grep -Fqx 'exec $SWAY_NOIR_DIR/session/start-session "$lock_command" $gammastep_command' \
+    "$repo_root/sway/config.d/99-startup.conf" ||
+    fail 'session startup does not pass the shared lock command'
 
 printf '\n# changed by installer test\n' >> "$test_config/sway-noir/mako/config"
 "$repo_root/install.sh" --profile-only > "$test_root/update.log" 2>&1
@@ -131,6 +138,12 @@ for command_name in waybar mako gammastep; do
     } > "$command_path"
     chmod 755 "$command_path"
 done
+swayidle_mock="$session_mock_bin/swayidle"
+{
+    printf '#!/usr/bin/bash\n'
+    printf 'printf "swayidle %%s\\n" "$*" >> "$SESSION_LOG"\n'
+} > "$swayidle_mock"
+chmod 755 "$swayidle_mock"
 systemctl_mock="$session_mock_bin/systemctl"
 {
     printf '#!/usr/bin/bash\n'
@@ -140,11 +153,11 @@ systemctl_mock="$session_mock_bin/systemctl"
 chmod 755 "$systemctl_mock"
 
 SESSION_LOG="$session_log" PATH="$session_mock_bin:$PATH" \
-    "$repo_root/session/start-session" gammastep \
+    "$repo_root/session/start-session" 'lock-screen --ready' gammastep \
     > "$test_root/session.out" 2> "$test_root/session.err"
 for _ in {1..20}; do
     if [[ -f "$session_log" ]] &&
-       [[ "$(wc -l < "$session_log")" -ge 3 ]]; then
+       [[ "$(wc -l < "$session_log")" -ge 4 ]]; then
         break
     fi
     sleep 0.05
@@ -153,5 +166,7 @@ for command_name in waybar mako gammastep; do
     grep -Fqx "$command_name" "$session_log" ||
         fail "$command_name was blocked by a desktop portal failure"
 done
+[[ "$(grep -Fxc 'swayidle -w before-sleep lock-screen --ready' "$session_log")" == 1 ]] ||
+    fail 'swayidle was not started exactly once with only the before-sleep lock command'
 
-printf 'PASS: preflight, conflicts, legacy update, install, update backup, uninstall and resilient session startup\n'
+printf 'PASS: preflight, conflicts, legacy update, install, update backup, uninstall and resilient session startup with suspend locking\n'
