@@ -49,10 +49,10 @@
     "on-click": "pavucontrol"
   },
   "network": {
-    "format-wifi": "WIFI ({signalStrength}%)",
+    "format-wifi": "WIFI {signalStrength}%",
     "format-ethernet": "ETH",
     "format-disconnected": "NET down",
-    "tooltip-format-wifi": "{ifname} – {ipaddr}/{cidr}",
+    "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
     "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
     "tooltip-format-disconnected": "Disconnected",
     "max-length": 50
