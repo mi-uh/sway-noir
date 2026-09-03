@@ -108,6 +108,13 @@ grep -Fqx 'bindsym $mod+Shift+x exec $lock_command' \
 grep -Fqx 'exec $SWAY_NOIR_DIR/session/start-session "$lock_command" $gammastep_command' \
     "$repo_root/sway/config.d/99-startup.conf" ||
     fail 'session startup does not pass the shared lock command'
+grep -Fqx 'bindsym XF86AudioMicMute exec pactl set-source-mute \@DEFAULT_SOURCE@ toggle' \
+    "$repo_root/sway/config.d/60-keybindings.conf" ||
+    fail 'microphone mute binding is not disabled while the session is locked'
+if grep -Fq 'bindsym --locked XF86AudioMicMute' \
+   "$repo_root/sway/config.d/60-keybindings.conf"; then
+    fail 'microphone mute binding remains active while the session is locked'
+fi
 
 printf '\n# changed by installer test\n' >> "$test_config/sway-noir/mako/config"
 "$repo_root/install.sh" --profile-only > "$test_root/update.log" 2>&1
