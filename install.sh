@@ -364,6 +364,7 @@ check_runtime_dependencies() {
         playerctl
         sway
         swaybg
+        swayidle
         swaylock
         waybar
     )
@@ -379,7 +380,7 @@ check_runtime_dependencies() {
         printf '  %s\n' "${missing_commands[@]}" >&2
         printf '\nInstall the Fedora dependencies first:\n' >&2
         printf '%s\n' \
-            '  sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \' \
+            '  sudo dnf install sway swaybg swayidle swaylock waybar fuzzel mako foot gammastep \' \
             '      ibm-plex-sans-fonts playerctl brightnessctl grim pulseaudio-utils \' \
             '      pavucontrol \' \
             '      dconf gsettings-desktop-schemas pipewire wireplumber \' \

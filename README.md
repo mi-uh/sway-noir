@@ -18,7 +18,7 @@ Vim-style navigation, and a deliberately lean desktop setup.
 Install the required Fedora packages:
 
 ```bash
-sudo dnf install sway swaybg swaylock waybar fuzzel mako foot gammastep \
+sudo dnf install sway swaybg swayidle swaylock waybar fuzzel mako foot gammastep \
     ibm-plex-sans-fonts playerctl brightnessctl grim pulseaudio-utils \
     pavucontrol dconf gsettings-desktop-schemas pipewire wireplumber \
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr
@@ -130,4 +130,4 @@ The uninstaller preserves:
 
 ## License
 
-MIT. The wallpaper and lock-screen artwork were generated with ChatGPT.
+MIT
