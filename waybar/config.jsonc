@@ -35,7 +35,7 @@
     "format": "{title}",
     "max-length": 50,
     "rewrite": {
-      "(.*) - Mozilla Firefox": "$1 - Firefox",
+      "(.*) (?:-|—) Mozilla Firefox(.*)": "$1 - Firefox$2",
       "(.*) - Visual Studio Code": "$1 - VS Code"
     }
   },
