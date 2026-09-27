@@ -15,12 +15,12 @@
     "sway/window"
   ],
   "modules-right": [
+    "tray",
     "pulseaudio",
     "network",
     "cpu",
     "memory",
     "battery",
-    "tray",
     "clock"
   ],
   "sway/workspaces": {
