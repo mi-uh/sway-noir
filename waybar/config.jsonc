@@ -43,13 +43,13 @@
     "spacing": 8
   },
   "pulseaudio": {
-    "format": "VOL {volume}%",
+    "format": "VOL {volume}",
     "format-muted": "VOL muted",
     "scroll-step": 2,
     "on-click": "pavucontrol"
   },
   "network": {
-    "format-wifi": "WIFI {signalStrength}%",
+    "format-wifi": "WIFI {signalStrength}",
     "format-ethernet": "ETH",
     "format-disconnected": "NET down",
     "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
@@ -58,12 +58,12 @@
     "max-length": 50
   },
   "cpu": {
-    "format": "CPU {usage}%",
+    "format": "CPU {usage}",
     "interval": 3,
     "tooltip": false
   },
   "memory": {
-    "format": "RAM {percentage}%",
+    "format": "RAM {percentage}",
     "interval": 5,
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
   },
@@ -76,9 +76,9 @@
       "warning": 30,
       "critical": 15
     },
-    "format": "BAT {capacity}%",
-    "format-charging": "BAT {capacity}%+",
-    "format-plugged": "BAT {capacity}%+",
+    "format": "BAT {capacity}",
+    "format-charging": "BAT {capacity}+",
+    "format-plugged": "BAT {capacity}+",
     "format-full": "BAT full"
   }
 }
