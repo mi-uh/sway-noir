@@ -20,7 +20,7 @@ jobs:
     outputs:
       fedora: ${{ steps.scope.outputs.fedora }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0 (Node.js 24)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.1.0 (Node.js 24)
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 20
     container: fedora:44
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0 (Node.js 24)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.1.0 (Node.js 24)
         with:
           persist-credentials: false
       - name: Install Fedora dependencies from the shared definition and test tools
