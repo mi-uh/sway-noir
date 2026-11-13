@@ -1,0 +1,89 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+readonly profile_dir="${XDG_CONFIG_HOME:-$HOME/.config}/sway-noir"
+
+warn() {
+    printf 'Warning: %s\n' "$*" >&2
+}
+
+if (( $# < 4 )); then
+    printf 'Missing lock, audio settings, PolicyKit agent or Gammastep command\n' >&2
+    exit 2
+fi
+if [[ ! "${SWAY_NOIR_SESSION_ID:-}" =~ ^[0-9]+-[0-9]+-[0-9]+$ ]]; then
+    printf 'Missing or invalid Sway Noir session ID; use start-sway-noir to launch the session.\n' >&2
+    exit 2
+fi
+
+readonly lock_command="$1"
+readonly audio_settings_command="$2"
+readonly polkit_agent_command="$3"
+shift 3
+
+# QT_QPA_PLATFORMTHEME deliberately stays scoped to Sway Noir processes. Do not
+# add it to this shared activation-environment import.
+dbus-update-activation-environment --systemd \
+    DISPLAY \
+    WAYLAND_DISPLAY \
+    SWAYSOCK \
+    XDG_CURRENT_DESKTOP \
+    XDG_SESSION_DESKTOP \
+    XDG_SESSION_TYPE \
+    SWAY_NOIR_SESSION_ID
+
+# A portal may already be running with an incomplete activation environment
+# from before Sway was ready. Stop both the frontend and its backends so the
+# imported Sway environment and sway-portals.conf are guaranteed to take
+# effect below. Stopping inactive units is harmless.
+if ! systemctl --user stop xdg-desktop-portal.service; then
+    warn 'Could not stop xdg-desktop-portal.service; continuing session startup.'
+fi
+if ! systemctl --user stop \
+    xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service; then
+    warn 'Could not stop all desktop portal backends; continuing session startup.'
+fi
+
+# Since xdg-desktop-portal 1.21, portal units refuse to start before
+# graphical-session.target. Clear any failed early activation before bringing
+# up the graphical session.
+if ! systemctl --user reset-failed \
+    xdg-desktop-portal.service \
+    xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service; then
+    warn 'Could not reset failed desktop portal units; continuing session startup.'
+fi
+
+# systemctl waits for the target start job to finish before applications below
+# can activate a desktop portal.
+session_target_ready=true
+if ! systemctl --user start sway-noir-session.target; then
+    warn 'Could not start sway-noir-session.target; desktop applications will still be started.'
+    session_target_ready=false
+fi
+
+# Queue the portal with the newly imported environment. It will activate the
+# GTK Settings backend, which publishes the dark-mode preference. Do not make
+# unrelated desktop applications depend on successful portal activation.
+if [[ "$session_target_ready" == true ]] &&
+   ! systemctl --user start --no-block xdg-desktop-portal.service; then
+    warn 'Could not queue xdg-desktop-portal.service; continuing session startup.'
+fi
+
+# A transient service keeps the desktop processes in their own cgroup. systemd
+# terminates the whole group on logout, including children of custom commands.
+systemd-run --user --collect --service-type=exec --expand-environment=no \
+    --unit="sway-noir-apps-${SWAY_NOIR_SESSION_ID}.service" \
+    --property=PartOf=sway-noir-session.target \
+    --property=After=sway-noir-session.target \
+    --property=KillMode=control-group \
+    --setenv="QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME:-gtk3}" \
+    --setenv="SWAY_NOIR_DIR=$profile_dir" \
+    --setenv="SWAY_NOIR_THEME_DIR=${SWAY_NOIR_THEME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/sway-noir/current}" \
+    --setenv="SWAY_NOIR_SESSION_ID=$SWAY_NOIR_SESSION_ID" \
+    --setenv="XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}" \
+    --setenv="SWAY_NOIR_AUDIO_SETTINGS_COMMAND=$audio_settings_command" \
+    --setenv="XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}" \
+    --setenv="PATH=$PATH" \
+    "$profile_dir/session/run-apps" "$lock_command" "$polkit_agent_command" "$@"

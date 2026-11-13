@@ -1,0 +1,140 @@
+/* A continuous carbon rail with restrained brass accents.
+ * GTK CSS only: no browser-only clipping, pseudo-elements or layout rules. */
+@define-color bg {{bg}};
+@define-color surface {{surface}};
+@define-color surface_alt {{surface_alt}};
+@define-color border {{border}};
+@define-color accent {{accent}};
+@define-color accent_surface {{accent_surface}};
+@define-color urgent {{urgent}};
+@define-color text {{text}};
+@define-color muted {{muted}};
+
+* {
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    font-family: "{{font}}", sans-serif;
+    font-size: 12px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+window#waybar {
+    color: @text;
+    background: alpha(@bg, 0.98);
+    border-top: 1px solid alpha(@accent, 0.32);
+}
+
+#workspaces {
+    margin-left: 8px;
+}
+
+#workspaces button {
+    color: @muted;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 20px;
+    padding: 0 9px;
+    margin: 4px 2px;
+    border-bottom: 2px solid transparent;
+}
+
+#workspaces button:hover {
+    color: @text;
+    background: @surface_alt;
+    border-bottom-color: @muted;
+}
+
+#workspaces button.visible {
+    color: @text;
+    background: @surface;
+    border-bottom-color: @border;
+}
+
+#workspaces button.focused,
+#workspaces button.active {
+    color: @accent;
+    background: @accent_surface;
+    border-bottom-color: @accent;
+}
+
+#workspaces button.urgent {
+    color: @bg;
+    background: @urgent;
+    border-bottom-color: @urgent;
+}
+
+#mode {
+    color: @bg;
+    background: @accent;
+    font-weight: 600;
+    padding: 0 10px;
+    margin: 5px 8px;
+}
+
+#window {
+    color: @muted;
+    font-size: 11px;
+    padding: 0 16px;
+}
+
+#cpu,
+#memory,
+#network,
+#pulseaudio,
+#battery,
+#clock {
+    color: @text;
+    padding: 0 9px;
+}
+
+/* Separators mark functional groups, rather than boxing every reading. */
+#network,
+#battery,
+#tray,
+#clock {
+    border-left: 1px solid @border;
+    margin: 9px 0;
+}
+
+#tray {
+    padding: 0 10px;
+}
+
+#pulseaudio.muted,
+#network.disconnected {
+    color: @muted;
+}
+
+#battery.charging,
+#battery.plugged,
+#battery.full {
+    color: @accent;
+}
+
+#battery.warning {
+    color: @urgent;
+}
+
+#battery.critical {
+    color: @urgent;
+    background: alpha(@urgent, 0.12);
+    border-bottom: 2px solid @urgent;
+}
+
+#clock {
+    font-weight: 600;
+}
+
+tooltip {
+    color: @text;
+    background: @surface;
+    border: 1px solid alpha(@accent, 0.55);
+}
+
+tooltip label {
+    color: @text;
+    padding: 6px;
+}

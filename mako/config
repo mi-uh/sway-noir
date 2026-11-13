@@ -1,0 +1,25 @@
+font={{font}} 10
+background-color={{surface}}f2
+text-color={{text}}ff
+border-color={{accent}}ff
+border-size={{border_width}}
+border-radius={{radius}}
+width=360
+margin=12
+padding=12
+default-timeout=6000
+ignore-timeout=0
+max-visible=4
+anchor=top-right
+layer=overlay
+icons=1
+max-icon-size=48
+format=<b>%s</b>\n%b
+group-by=app-name
+
+[urgency=low]
+border-color={{border}}ff
+
+[urgency=high]
+border-color={{urgent}}ff
+default-timeout=0

@@ -1,0 +1,64 @@
+name: Fedora dependencies
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      fedora: ${{ steps.scope.outputs.fedora }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0 (Node.js 24)
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect changes requiring Fedora compatibility checks
+        id: scope
+        run: python3 .github/scripts/fedora_changes.py
+  fedora-44:
+    needs: changes
+    # Keep a visible skipped job for unrelated changes instead of a missing
+    # workflow check. If comparison fails, run Fedora rather than silently skip.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.fedora == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container: fedora:44
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+      - name: Install Fedora dependencies from the shared definition and test tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          packages=(git python3 shadow-utils util-linux ShellCheck)
+          while IFS='|' read -r scope _check _capability fedora _; do
+            [[ -n "$scope" && "$scope" != \#* ]] || continue
+            read -r -a dependency_packages <<< "$fedora"
+            packages+=("${dependency_packages[@]}")
+          done < dependencies.list
+          dnf install -y "${packages[@]}"
+          useradd --create-home sway-noir-test
+      - name: Check real font and PolicyKit package layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          fc-match -f '%{family}\n' 'IBM Plex Sans' | grep -Fx 'IBM Plex Sans'
+          source session/dependencies.sh
+          test -x "$(find_polkit_agent)"
+      - name: Run isolated regression tests as a normal user
+        run: runuser -u sway-noir-test -- bash tests/run.sh
+      - name: Install the profile with real Fedora dependencies
+        run: runuser -u sway-noir-test -- ./install.sh --profile-only

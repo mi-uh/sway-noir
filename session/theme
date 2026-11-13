@@ -1,0 +1,240 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+profile_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly profile_dir
+readonly state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+readonly state_dir="$state_home/sway-noir"
+readonly current="$state_dir/current"
+readonly default_theme=rain
+readonly -a outputs=(sway.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini mako/config swaylock/config)
+declare -A values=()
+generation=""
+link_path=""
+
+die() { printf 'Theme error: %s\n' "$*" >&2; exit 1; }
+warn() { printf 'Warning: %s\n' "$*" >&2; }
+
+valid_id() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]*$ ]]; }
+
+read_theme() {
+    local file="$1" key value line
+    [[ -f "$file" ]] || die "Missing theme: $file"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        [[ "$line" == *=* ]] || die "Expected key=value in $file"
+        key="${line%%=*}"
+        value="${line#*=}"
+        case "$key" in
+            bg|surface|surface_alt|border|accent|accent_surface|urgent|text|muted|input|selection|selection_text)
+                [[ "$value" =~ ^#[[:xdigit:]]{6}$ ]] || die "Invalid color $key in $file"
+                ;;
+            gaps_inner|gaps_outer|border_width|radius|bar_radius|bar_button_radius)
+                [[ "$value" =~ ^(0|[1-9][0-9]?)$ ]] || die "Invalid size $key in $file (expected 0..99)"
+                ;;
+            name|font)
+                [[ "$value" =~ ^[[:alnum:]][[:alnum:]\ ._-]*$ ]] || die "Invalid $key in $file"
+                ;;
+            wallpaper|lock_wallpaper)
+                [[ "$value" =~ ^[[:alnum:]_./\ -]+$ && "$value" != /* && "/$value/" != */../* ]] ||
+                    die "Invalid asset path $key in $file"
+                [[ "$value" == none || -f "$profile_dir/$value" ]] || die "Missing asset: $value"
+                ;;
+            *) die "Unknown theme key $key in $file" ;;
+        esac
+        values["$key"]="$value"
+    done < "$file"
+}
+
+load_theme() {
+    local id="$1" key
+    valid_id "$id" || die "Invalid theme ID: $id"
+    values=()
+    read_theme "$profile_dir/themes/$default_theme/theme.conf"
+    [[ "$id" == "$default_theme" ]] || read_theme "$profile_dir/themes/$id/theme.conf"
+    for key in bg surface surface_alt border accent accent_surface urgent text muted input selection selection_text; do
+        values["${key}_hex"]="${values[$key]#\#}"
+    done
+    if [[ "${values[wallpaper]}" == none ]]; then
+        values[wallpaper_command]="output * background ${values[bg]} solid_color"
+    else
+        values[wallpaper_command]="output * background \"\$SWAY_NOIR_DIR/${values[wallpaper]}\" fill ${values[bg]}"
+    fi
+}
+
+selected_id() {
+    local id="$default_theme"
+    if [[ -f "$current/theme-id" ]]; then
+        IFS= read -r id < "$current/theme-id"
+    fi
+    valid_id "$id" || die 'Invalid saved theme ID.'
+    # Preserve the renamed bundled selection without hiding a personal theme.
+    if [[ "$id" == noir && ! -f "$profile_dir/themes/$id/theme.conf" ]]; then
+        id="$default_theme"
+    fi
+    printf '%s\n' "$id"
+}
+
+list_themes() {
+    local file id
+    for file in "$profile_dir"/themes/*/theme.conf; do
+        [[ -f "$file" ]] || continue
+        id="${file%/theme.conf}"
+        id="${id##*/}"
+        if valid_id "$id"; then printf '%s\n' "$id"; fi
+    done
+}
+
+render() {
+    local id="$1" output source content key token
+    generation="$(mktemp -d "$state_dir/theme.XXXXXXXX")"
+    for output in "${outputs[@]}"; do
+        source="$profile_dir/$output"
+        [[ "$output" != sway.conf ]] || source="$profile_dir/themes/sway.conf"
+        if [[ -f "$profile_dir/themes/$id/$output" ]]; then
+            source="$profile_dir/themes/$id/$output"
+        fi
+        [[ -f "$source" ]] || die "Missing template: $source"
+        content="$(< "$source")"
+        # Bash 5.2's optional replacement expansion must not treat '&' as code.
+        shopt -u patsub_replacement 2>/dev/null || true
+        for key in "${!values[@]}"; do
+            token="{{${key}}}"
+            content="${content//"$token"/"${values[$key]}"}"
+        done
+        [[ "$content" != *'{{'* ]] || die "Unresolved token in $source"
+        install -d -m 700 "$generation/$(dirname -- "$output")"
+        printf '%s\n' "$content" > "$generation/$output"
+    done
+    if [[ "${values[lock_wallpaper]}" != none ]]; then
+        printf 'image=%s/%s\n' "$profile_dir" "${values[lock_wallpaper]}" >> "$generation/swaylock/config"
+    fi
+    printf '%s\n' "$id" > "$generation/theme-id"
+}
+
+remove_generation() {
+    local directory="$1" output
+    # Delete only our known generated files, never a broad or user-given tree.
+    [[ "${directory%/*}" == "$state_dir" && "${directory##*/}" =~ ^theme\.[[:alnum:]]{8}$ &&
+       -d "$directory" && ! -L "$directory" ]] || return 0
+    for output in "${outputs[@]}" theme-id; do rm -f -- "$directory/$output"; done
+    rmdir -- "$directory/waybar" "$directory/fuzzel" "$directory/mako" "$directory/swaylock" "$directory" 2>/dev/null || true
+}
+
+cleanup() {
+    [[ -z "$link_path" ]] || rm -f -- "$link_path"
+    [[ -z "$generation" ]] || remove_generation "$generation"
+}
+
+activate() {
+    local id="$1" live="$2" previous="" reply
+    [[ "$state_home" == /* ]] || die 'XDG_STATE_HOME must be an absolute path.'
+    install -d -m 700 "$state_dir"
+    exec 9> "$state_dir/theme.lock"
+    flock -x 9
+    trap cleanup EXIT
+    # Refresh selection while holding the lock during session startup.
+    if [[ "$id" == --saved ]]; then
+        id="$(selected_id)"
+        if [[ ! -f "$profile_dir/themes/$id/theme.conf" ]]; then
+            warn "Saved theme $id is missing; using Rain."
+            id="$default_theme"
+        fi
+    fi
+    load_theme "$id"
+    [[ ! -e "$current" || -L "$current" ]] || die "Refusing to replace non-symlink: $current"
+    if [[ -L "$current" ]]; then previous="$(readlink -- "$current")"; fi
+    render "$id"
+    # Even --validate initializes wlroots. Do not inherit the live session's
+    # backend/renderer or require a working nested compositor and GPU here.
+    if [[ "$live" == true ]] && ! reply="$(SWAY_NOIR_DIR="$profile_dir" \
+        SWAY_NOIR_THEME_DIR="$generation" WLR_BACKENDS=headless WLR_RENDERER=pixman \
+        sway --validate --config "$profile_dir/sway/config" 2>&1)"; then
+        die "Sway configuration validation failed; selection unchanged. $reply"
+    fi
+    link_path="$state_dir/.current-${BASHPID}"
+    ln -s -- "$generation" "$link_path"
+    mv -Tf -- "$link_path" "$current"
+    link_path=""
+    if [[ "$live" == true ]]; then
+        # -r makes any failed Sway command cause a nonzero exit, without jq.
+        if ! reply="$(swaymsg -r reload 2>&1)"; then
+            if [[ -n "$previous" ]]; then
+                link_path="$state_dir/.current-${BASHPID}"
+                ln -s -- "$previous" "$link_path"
+                mv -Tf -- "$link_path" "$current"
+                link_path=""
+                swaymsg -r reload >/dev/null 2>&1 || true
+            else
+                rm -f -- "$current"
+            fi
+            die "Sway reload failed; previous selection restored. $reply"
+        fi
+        # Signal only this session's supervisor; it reloads its own Waybar/Mako.
+        if ! systemctl --user kill --kill-whom=main --signal=USR2 \
+            "sway-noir-apps-${SWAY_NOIR_SESSION_ID}.service"; then
+            warn 'Theme saved, but the desktop appearance reload could not be requested.'
+        fi
+    fi
+    generation=""
+    [[ -z "$previous" ]] || remove_generation "$previous"
+    printf '%s\n' "$id"
+}
+
+require_session() {
+    [[ -n "${SWAYSOCK:-}" && "${SWAY_NOIR_SESSION_ID:-}" =~ ^[0-9]+-[0-9]+-[0-9]+$ &&
+       "${SWAY_NOIR_THEME_DIR:-}" == "$current" ]] ||
+        die 'Run this command inside Sway Noir (or use set ID --no-reload for the next login).'
+}
+
+usage() {
+    printf '%s\n' 'Usage: session/theme list | current | select | set ID [--no-reload] | init'
+}
+
+case "${1:-select}" in
+    list) (( $# == 1 )) || die 'Unexpected arguments.'; list_themes ;;
+    current) (( $# == 1 )) || die 'Unexpected arguments.'; selected_id ;;
+    init) (( $# == 1 )) || die 'Unexpected arguments.'; activate --saved false ;;
+    set)
+        (( $# == 2 || $# == 3 )) || { usage >&2; exit 2; }
+        live=true
+        if (( $# == 3 )); then
+            [[ "$3" == --no-reload ]] || die "Unknown option: $3"
+            live=false
+        else
+            require_session
+        fi
+        activate "$2" "$live"
+        ;;
+    select)
+        (( $# <= 1 )) || die 'Unexpected arguments.'
+        require_session
+        # Display labels, but select by index so names cannot become commands.
+        ids=()
+        labels=()
+        while IFS= read -r id; do
+            load_theme "$id"
+            ids+=("$id")
+            labels+=("${values[name]} ($id)")
+        done < <(list_themes)
+        if ! index="$(printf '%s\n' "${labels[@]}" | fuzzel --dmenu --index \
+            --config="$current/fuzzel/fuzzel.ini" --prompt='theme: ' )"; then
+            exit 0
+        fi
+        [[ "$index" =~ ^(0|[1-9][0-9]*)$ && ${#index} -lt 6 ]] || die 'Invalid theme selection.'
+        (( index < ${#ids[@]} )) || die 'Invalid theme selection.'
+        # Run activation separately so all failures (including set -e errors)
+        # can be shown when launched by a keybinding without a terminal.
+        if ! reply="$("$profile_dir/session/theme" set "${ids[index]}" 2>&1)"; then
+            printf '%s\n' "$reply" >&2
+            # Activation has already exited and released its lock. The error
+            # panel must not hold up cleanup or the next selection.
+            swaynag -t error -m 'Could not switch theme. See details below.' \
+                --detailed-message <<< "$reply" >/dev/null 2>&1 &
+            exit 1
+        fi
+        printf '%s\n' "$reply"
+        ;;
+    -h|--help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac

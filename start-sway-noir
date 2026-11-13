@@ -1,0 +1,133 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+readonly config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
+readonly profile_dir="$config_root/sway-noir"
+readonly SWAY_NOIR_DIR="$profile_dir"
+readonly SWAY_NOIR_THEME_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/sway-noir/current"
+readonly sway_config="$profile_dir/sway/config"
+readonly session_target="sway-noir-session.target"
+readonly SWAY_NOIR_SESSION_ID="${BASHPID}-${RANDOM}-${RANDOM}"
+readonly apps_unit="sway-noir-apps-${SWAY_NOIR_SESSION_ID}.service"
+
+export SWAY_NOIR_DIR SWAY_NOIR_SESSION_ID SWAY_NOIR_THEME_DIR
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORMTHEME=gtk3
+
+if [[ ! -f "$sway_config" ]]; then
+    printf 'Sway Noir is not installed at %s\n' "$profile_dir" >&2
+    exit 1
+fi
+
+# Regenerate the saved design with this release's templates before Sway parses
+# its includes. This does not touch the shared activation environment.
+"$profile_dir/session/theme" init >/dev/null
+
+cd -- "$HOME"
+
+sway_pid=""
+cleanup_complete=false
+
+# Invoked by the EXIT trap.
+# ShellCheck 0.9 uses SC2317 for indirect calls; newer versions use SC2329.
+# shellcheck disable=SC2317,SC2329
+cleanup() {
+    local exit_status=$?
+    local activation_environment entry
+    local owns_environment=false
+    local -a session_variables=(
+        DISPLAY WAYLAND_DISPLAY SWAYSOCK
+        XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
+        SWAY_NOIR_SESSION_ID
+    )
+    local -a empty_environment=()
+
+    trap - EXIT
+    if [[ "$cleanup_complete" == false ]]; then
+        cleanup_complete=true
+
+        # The transient unit owns only this launcher's desktop processes.
+        # An absent unit (for example after an early Sway failure) is harmless.
+        if ! systemctl --user stop "$apps_unit" 2>/dev/null; then
+            printf 'Warning: could not stop desktop unit %s (it may not have started).\n' "$apps_unit" >&2
+        fi
+
+        if activation_environment="$(systemctl --user show-environment)"; then
+            while IFS= read -r entry; do
+                if [[ "$entry" == "SWAY_NOIR_SESSION_ID=$SWAY_NOIR_SESSION_ID" ]]; then
+                    owns_environment=true
+                fi
+            done <<< "$activation_environment"
+        else
+            printf 'Warning: could not inspect the user session environment; skipping shared session cleanup.\n' >&2
+        fi
+
+        # The user manager and D-Bus environment are shared. Never clear an
+        # environment subsequently imported by another Sway Noir session.
+        if [[ "$owns_environment" == true ]]; then
+            if ! systemctl --user stop \
+                xdg-desktop-portal.service \
+                xdg-desktop-portal-gtk.service \
+                xdg-desktop-portal-wlr.service; then
+                printf 'Warning: could not stop all desktop portals.\n' >&2
+            fi
+            if ! systemctl --user stop "$session_target" graphical-session.target; then
+                printf 'Warning: could not stop all graphical session targets.\n' >&2
+            fi
+
+            # D-Bus has no unset operation. Empty its stale activation values,
+            # then remove the corresponding values from the systemd manager.
+            for entry in "${session_variables[@]}"; do
+                empty_environment+=("$entry=")
+            done
+            if ! dbus-update-activation-environment "${empty_environment[@]}"; then
+                printf 'Warning: could not clear the D-Bus session environment.\n' >&2
+            fi
+            if ! systemctl --user unset-environment "${session_variables[@]}"; then
+                printf 'Warning: could not clear the systemd session environment.\n' >&2
+            fi
+        fi
+    fi
+    return "$exit_status"
+}
+
+# Invoked by the signal traps.
+# shellcheck disable=SC2317,SC2329
+forward_signal() {
+    local signal="$1"
+
+    if [[ -n "$sway_pid" ]] && kill -0 "$sway_pid" 2>/dev/null; then
+        kill -s "$signal" "$sway_pid" 2>/dev/null || true
+    fi
+}
+
+trap cleanup EXIT
+trap 'forward_signal HUP' HUP
+trap 'forward_signal INT' INT
+trap 'forward_signal TERM' TERM
+
+if command -v start-sway >/dev/null 2>&1; then
+    sway_command=(start-sway --config "$sway_config")
+else
+    sway_command=(sway --config "$sway_config")
+fi
+
+"${sway_command[@]}" &
+sway_pid=$!
+
+while true; do
+    if wait "$sway_pid"; then
+        sway_status=0
+        break
+    else
+        sway_status=$?
+    fi
+
+    if ! kill -0 "$sway_pid" 2>/dev/null; then
+        break
+    fi
+done
+
+exit "$sway_status"

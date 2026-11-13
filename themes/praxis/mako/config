@@ -1,0 +1,24 @@
+font={{font}} 11
+background-color={{bg}}fa
+text-color={{text}}ff
+border-color={{accent}}ff
+border-size=1
+border-radius=0
+width=360
+margin=12
+padding=16
+default-timeout=6000
+ignore-timeout=0
+max-visible=3
+anchor=top-right
+layer=overlay
+icons=0
+format=<span size="small" foreground="{{accent}}">%a</span>\n<b>%s</b>\n%b
+group-by=app-name
+
+[urgency=low]
+border-color={{border}}ff
+
+[urgency=high]
+border-color={{urgent}}ff
+default-timeout=0

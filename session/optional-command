@@ -1,0 +1,36 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+usage() {
+    printf 'Usage: %s FEATURE COMMAND [ARGUMENTS...]\n       %s --shell FEATURE COMMAND_STRING\n' "$0" "$0" >&2
+    exit 2
+}
+
+if [[ "${1:-}" == --shell ]]; then
+    (( $# == 3 )) || usage
+    feature="$2"
+    command_string="$3"
+    [[ -n "$command_string" ]] || exit 0
+    # Shell strings come only from the user's trusted Sway configuration, never
+    # from application titles, device names or other external data.
+    if /usr/bin/bash -c "$command_string"; then
+        exit 0
+    else
+        status=$?
+        if (( status == 127 )); then
+            printf 'Warning: optional %s command is unavailable; skipping this feature.\n' "$feature" >&2
+            exit 0
+        fi
+        printf 'Warning: optional %s command exited with status %s.\n' "$feature" "$status" >&2
+        exit "$status"
+    fi
+fi
+
+(( $# >= 2 )) || usage
+feature="$1"
+shift
+if ! command -v "$1" >/dev/null 2>&1; then
+    printf 'Warning: optional %s requires %s; skipping this feature.\n' "$feature" "$1" >&2
+    exit 0
+fi
+exec "$@"

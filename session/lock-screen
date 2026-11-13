@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+# Resolve at invocation, including swayidle's before-sleep action. An already
+# locked screen is never stopped or restarted by a theme change.
+theme_dir="${SWAY_NOIR_THEME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/sway-noir/current}"
+exec swaylock --daemonize --config "$theme_dir/swaylock/config"

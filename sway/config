@@ -1,0 +1,24 @@
+# Sway Noir standalone configuration.
+# Start it with: ~/.config/sway-noir/start-sway-noir
+
+set $mod Mod4
+set $left h
+set $down j
+set $up k
+set $right l
+
+# Sway's upstream default. Change this to use another terminal.
+set $term foot
+set $menu fuzzel --config="$SWAY_NOIR_THEME_DIR/fuzzel/fuzzel.ini"
+
+# Defaults; see 99-local.conf.example for session overrides and binding changes.
+set $lock_command "$SWAY_NOIR_DIR/session/lock-screen"
+set $gammastep_command "$SWAY_NOIR_DIR/session/optional-command" night-color gammastep -c "$SWAY_NOIR_DIR/gammastep/config.ini"
+set $audio_command "$SWAY_NOIR_DIR/session/optional-command" audio-controls wpctl
+set $media_command "$SWAY_NOIR_DIR/session/optional-command" media-controls playerctl
+set $brightness_command "$SWAY_NOIR_DIR/session/optional-command" brightness-controls brightnessctl
+set $screenshot_command "$SWAY_NOIR_DIR/session/screenshot"
+set $audio_settings_command pavucontrol
+set $polkit_agent_command lxqt-policykit-agent
+
+include config.d/*.conf

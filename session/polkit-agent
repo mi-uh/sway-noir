@@ -1,0 +1,24 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+if (( $# > 1 )); then
+    printf 'Usage: %s [COMMAND_STRING]\n' "$0" >&2
+    exit 2
+fi
+agent_command="${1-lxqt-policykit-agent}"
+[[ -n "$agent_command" && "$agent_command" != true ]] || exit 0
+
+# Authentication prompts belong to the unprivileged desktop session. This
+# helper never elevates privileges and never changes PolicyKit policies.
+if (( EUID == 0 )); then
+    printf 'Warning: refusing to run the PolicyKit authentication agent as root.\n' >&2
+    exit 0
+fi
+
+profile_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$profile_dir/session/dependencies.sh"
+if [[ "$agent_command" == lxqt-policykit-agent ]] && agent_path="$(find_polkit_agent)"; then
+    # Quote the resolved executable for the trusted shell-command interface.
+    printf -v agent_command '%q' "$agent_path"
+fi
+exec "$profile_dir/session/optional-command" --shell 'PolicyKit authentication agent' "$agent_command"

@@ -1,0 +1,56 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+die() {
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
+if (( $# > 1 )); then
+    printf 'Usage: %s [region|full]\n' "$0" >&2
+    exit 2
+fi
+readonly mode="${1:-region}"
+case "$mode" in
+    region|full) ;;
+    *) printf 'Usage: %s [region|full]\n' "$0" >&2; exit 2 ;;
+esac
+
+command -v grim >/dev/null 2>&1 || die 'Screenshots require grim. See the README for package commands.'
+grim_options=()
+if [[ "$mode" == region ]]; then
+    command -v slurp >/dev/null 2>&1 ||
+        die 'Region screenshots require optional slurp. Use Shift+Print for a full-screen screenshot.'
+    # Select before creating any files. Escape/cancellation (or an empty
+    # selection) must never fall back to capturing the entire screen.
+    if ! geometry="$(slurp)" || [[ -z "$geometry" ]]; then
+        exit 0
+    fi
+    grim_options=(-g "$geometry")
+fi
+
+readonly screenshot_dir="${GRIM_DEFAULT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}"
+[[ "$screenshot_dir" == /* ]] || die 'The screenshot directory must be an absolute path.'
+umask 077
+mkdir -p -- "$screenshot_dir"
+
+output=""
+cleanup() {
+    if [[ -n "$output" ]]; then
+        rm -f -- "$output"
+    fi
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+timestamp="$(date +%Y-%m-%d_%H-%M-%S)"
+# mktemp reserves a unique, private filename even for simultaneous captures in
+# the same second. The exit trap removes incomplete images if grim fails.
+output="$(mktemp --suffix=.png -- "$screenshot_dir/Screenshot_${timestamp}.XXXXXX")"
+grim -t png "${grim_options[@]}" "$output"
+[[ -s "$output" ]] || die 'grim did not produce an image.'
+
+trap - EXIT HUP INT TERM
+printf '%s\n' "$output"

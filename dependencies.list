@@ -1,0 +1,34 @@
+# Pipe-separated: scope|check|capability|Fedora packages|Debian/Ubuntu packages|Arch packages
+# profile = required by the default session; feature = optional functionality;
+# dark = required only with --set-dark-mode. Package names are hints, not installs.
+profile|command|sway|sway|sway|sway
+profile|command|swaymsg|sway|sway|sway
+profile|command|swaynag|sway|sway|sway
+profile|command|swaybg|swaybg|swaybg|swaybg
+profile|command|swayidle|swayidle|swayidle|swayidle
+profile|command|swaylock|swaylock|swaylock|swaylock
+profile|command|waybar|waybar|waybar|waybar
+profile|command|fuzzel|fuzzel|fuzzel|fuzzel
+profile|command|mako|mako|mako-notifier|mako
+profile|command|makoctl|mako|mako-notifier|mako
+profile|command|flock|util-linux|util-linux|util-linux
+profile|command|foot|foot|foot|foot
+profile|command|dbus-update-activation-environment|dbus-tools|dbus-bin|dbus
+profile|command|systemctl|systemd|systemd|systemd
+profile|command|systemd-run|systemd|systemd|systemd
+profile|command|systemd-analyze|systemd|systemd|systemd
+feature|command|gammastep|gammastep|gammastep|gammastep
+feature|command|brightnessctl|brightnessctl|brightnessctl|brightnessctl
+feature|command|playerctl|playerctl|playerctl|playerctl
+feature|command|grim|grim|grim|grim
+feature|command|slurp|slurp|slurp|slurp
+feature|command|wpctl|wireplumber|wireplumber|wireplumber
+feature|command|pavucontrol|pavucontrol|pavucontrol|pavucontrol
+feature|polkit|lxqt-policykit-agent|lxqt-policykit qt6-qtwayland|lxqt-policykit qt6-wayland|lxqt-policykit qt6-wayland
+profile|unit|xdg-desktop-portal.service|xdg-desktop-portal|xdg-desktop-portal|xdg-desktop-portal
+profile|unit|xdg-desktop-portal-gtk.service|xdg-desktop-portal-gtk|xdg-desktop-portal-gtk|xdg-desktop-portal-gtk
+profile|unit|xdg-desktop-portal-wlr.service|xdg-desktop-portal-wlr|xdg-desktop-portal-wlr|xdg-desktop-portal-wlr
+feature|audio|PulseAudio-compatible audio server|pipewire-pulseaudio wireplumber|pipewire-pulse wireplumber|pipewire-pulse wireplumber
+feature|font|IBM Plex Sans|ibm-plex-sans-fonts|fonts-ibm-plex|ttf-ibm-plex
+dark|command|gsettings|glib2|libglib2.0-bin|glib2
+dark|schema|org.gnome.desktop.interface|gsettings-desktop-schemas|gsettings-desktop-schemas|gsettings-desktop-schemas

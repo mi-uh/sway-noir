@@ -1,0 +1,44 @@
+# Personal settings belong here. The installer creates 99-local.conf once and
+# never overwrites it during updates.
+
+# Terminal example:
+# bindsym --no-warn $mod+Return exec alacritty
+
+# Keyboard example:
+# input type:keyboard xkb_layout de
+
+# Restore libinput's adaptive pointer acceleration:
+# input type:pointer accel_profile adaptive
+# input type:touchpad accel_profile adaptive
+
+# Disable Gammastep by replacing its startup command with a no-op:
+# set $gammastep_command true
+
+# Hardware bindings have already been parsed by the time this file is loaded.
+# Disable them with unbindsym (or replace them with bindsym --no-warn), not by
+# changing variables used in earlier bindings. Enable only the lines you need.
+# unbindsym --locked XF86AudioMute
+# unbindsym --locked XF86AudioLowerVolume
+# unbindsym --locked XF86AudioRaiseVolume
+# unbindsym XF86AudioMicMute
+# unbindsym --locked XF86AudioPlay
+# unbindsym --locked XF86AudioPause
+# unbindsym --locked XF86AudioPrev
+# unbindsym --locked XF86AudioNext
+# unbindsym --locked XF86AudioStop
+# unbindsym --locked XF86MonBrightnessDown
+# unbindsym --locked XF86MonBrightnessUp
+# unbindsym Print
+# unbindsym Shift+Print
+# bindsym --no-warn --locked XF86AudioMute exec my-audio-control mute
+
+# Use an existing PolicyKit agent, or disable Sway Noir's agent if another
+# session component already provides authentication prompts:
+# set $polkit_agent_command true
+# set $polkit_agent_command /path/to/another-agent --option
+
+# Multi-monitor example:
+# output eDP-1 position 0 0 scale 1
+# output DP-1 position 1920 0 scale 1.25
+# workspace 1 output eDP-1
+# workspace 6 output DP-1

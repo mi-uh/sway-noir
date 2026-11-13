@@ -1,0 +1,50 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+if (( $# < 3 )); then
+    printf 'Missing lock, PolicyKit agent or Gammastep command\n' >&2
+    exit 2
+fi
+
+profile_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly profile_dir
+readonly theme_dir="${SWAY_NOIR_THEME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/sway-noir/current}"
+readonly lock_command="$1"
+readonly polkit_agent_command="$2"
+shift 2
+
+waybar_pid=""
+mako_pid=""
+reload_appearance() {
+    local running
+    running=$'\n'"$(jobs -pr)"$'\n'
+    if [[ -n "$waybar_pid" && "$running" == *$'\n'"$waybar_pid"$'\n'* ]]; then
+        kill -s USR2 "$waybar_pid" 2>/dev/null || true
+    fi
+    if [[ -n "$mako_pid" && "$running" == *$'\n'"$mako_pid"$'\n'* ]]; then
+        makoctl reload || printf 'Warning: could not reload notification appearance.\n' >&2
+    fi
+}
+trap reload_appearance USR2
+
+swayidle -w before-sleep "$lock_command" &
+waybar \
+    --config "$theme_dir/waybar/config.jsonc" \
+    --style "$theme_dir/waybar/style.css" &
+waybar_pid=$!
+mako --config "$theme_dir/mako/config" &
+mako_pid=$!
+if [[ -n "$polkit_agent_command" && "$polkit_agent_command" != true ]]; then
+    "$profile_dir/session/polkit-agent" "$polkit_agent_command" &
+fi
+"$@" &
+
+# Keep the service alive until its children exit. The default systemd
+# KillMode=control-group also covers subprocesses when the service is stopped.
+# A trapped signal interrupts wait. Keep supervising the existing children
+# instead of exiting the service (which would kill all of its processes).
+while true; do
+    status=0
+    wait || status=$?
+    (( status > 128 )) || break
+done

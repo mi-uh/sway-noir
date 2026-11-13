@@ -1,0 +1,137 @@
+/* Theme template; session/theme renders palette tokens before use. */
+@define-color bg {{bg}};
+@define-color surface {{surface}};
+@define-color surface_alt {{surface_alt}};
+@define-color border {{border}};
+@define-color accent {{accent}};
+@define-color accent_surface {{accent_surface}};
+@define-color urgent {{urgent}};
+@define-color text {{text}};
+@define-color muted {{muted}};
+
+* {
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    font-family: "{{font}}", sans-serif;
+    font-size: 12px;
+}
+
+window#waybar {
+    background: transparent;
+    color: @text;
+}
+
+#workspaces {
+    background: alpha(@surface, 0.92);
+    border: 1px solid alpha(@border, 0.90);
+    border-radius: {{bar_radius}}px;
+}
+
+#workspaces button {
+    padding: 0 10px;
+    color: @muted;
+    background: transparent;
+    border-radius: {{bar_button_radius}}px;
+    margin: 2px;
+}
+
+#workspaces button:hover {
+    color: @text;
+    background: alpha(@surface_alt, 0.96);
+}
+
+/* Keep the workspace shown on every non-focused output visibly marked.
+ * The globally focused workspace receives the stronger accent below. */
+#workspaces button.visible {
+    color: @text;
+    background: alpha(@accent_surface, 0.96);
+}
+
+#workspaces button.focused,
+#workspaces button.active {
+    color: @text;
+    background: alpha(@accent, 0.88);
+}
+
+#workspaces button.urgent {
+    color: @text;
+    background: @urgent;
+}
+
+#mode {
+    padding: 0 11px;
+    margin-left: 8px;
+    color: @urgent;
+    background: alpha(@surface, 0.92);
+    border: 1px solid @urgent;
+    border-radius: {{bar_radius}}px;
+}
+
+#window {
+    padding: 0 14px;
+    color: @text;
+    background: alpha(@surface, 0.88);
+    border: 1px solid alpha(@border, 0.85);
+    border-radius: {{bar_radius}}px;
+}
+
+window#waybar.empty #window {
+    background: transparent;
+    border-color: transparent;
+}
+
+#tray,
+#pulseaudio,
+#network,
+#cpu,
+#memory,
+#battery,
+#custom-gpu,
+#clock {
+    padding: 0 10px;
+    color: @text;
+    background: alpha(@surface, 0.92);
+    border-top: 1px solid alpha(@border, 0.90);
+    border-bottom: 1px solid alpha(@border, 0.90);
+    border-left: 1px solid alpha(@border, 0.65);
+}
+
+/* Round the outside of each output's joined status capsule. */
+#pulseaudio {
+    border-left: 1px solid alpha(@accent, 0.95);
+    border-radius: {{bar_radius}}px 0 0 {{bar_radius}}px;
+}
+
+#pulseaudio.muted,
+#network.disconnected {
+    color: @muted;
+}
+
+#battery.warning,
+#battery.critical {
+    color: @urgent;
+}
+
+#clock {
+    border-right: 1px solid alpha(@accent, 0.95);
+    border-radius: 0 {{bar_radius}}px {{bar_radius}}px 0;
+    font-weight: 600;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+tooltip {
+    color: @text;
+    background: alpha(@surface, 0.98);
+    border: 1px solid @accent;
+    border-radius: {{bar_radius}}px;
+}
+
+tooltip decoration {
+    border-radius: {{bar_radius}}px;
+}
+
+tooltip label {
+    color: @text;
+}
