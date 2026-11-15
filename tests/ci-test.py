@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 
@@ -18,6 +19,68 @@ sys.dont_write_bytecode = True
 SPEC = importlib.util.spec_from_file_location("fedora_changes", SCRIPT)
 CHANGES = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHANGES)
+
+
+class FedoraPackages(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(
+            prefix="sway-noir-fedora-packages-",
+            dir="/tmp/opencode" if os.access("/tmp/opencode", os.W_OK) else None,
+        )
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        self.bin = self.directory / "bin"
+        self.bin.mkdir()
+        self.packages = self.directory / "packages"
+        self.useradd = self.directory / "useradd"
+        (self.directory / "dependencies.list").write_text((ROOT / "dependencies.list").read_text())
+        # Execute the actual workflow block without a package manager or host writes.
+        workflow = (ROOT / ".github/workflows/fedora.yml").read_text()
+        step = workflow.split("      - name: Install Fedora dependencies", 1)[1]
+        step = step.split("      - name:", 1)[0]
+        self.script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        self.command("dnf", 'printf "%s\\n" "$@" > "$PACKAGE_LOG"\n'
+                     'for package; do\n'
+                     '  [[ "$package" != xorg-x11-drv-nvidia-cuda ]] || exit 25\n'
+                     'done\nexit "$DNF_STATUS"\n')
+        self.command("useradd", 'printf "%s\\n" "$@" > "$USERADD_LOG"\n')
+
+    def command(self, name, body):
+        path = self.bin / name
+        path.write_text("#!/usr/bin/bash\nset -euo pipefail\n" + body)
+        path.chmod(0o755)
+
+    def run_install_step(self, status="0"):
+        return subprocess.run(
+            ["/usr/bin/bash", "-c", self.script], cwd=self.directory,
+            env={**os.environ, "PATH": str(self.bin), "PACKAGE_LOG": str(self.packages),
+                 "USERADD_LOG": str(self.useradd), "DNF_STATUS": status},
+            capture_output=True, text=True, timeout=10,
+        )
+
+    def test_base_repository_packages_exclude_vendor_nvidia_driver_tools(self):
+        result = self.run_install_step()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = self.packages.read_text().splitlines()
+        self.assertEqual(arguments[:2], ["install", "-y"])
+        self.assertNotIn("--skip-unavailable", arguments)
+        self.assertNotIn("xorg-x11-drv-nvidia-cuda", arguments)
+        for line in (self.directory / "dependencies.list").read_text().splitlines():
+            if not line or line.startswith("#"):
+                continue
+            scope, _check, _capability, fedora, _debian, _arch = line.split("|")
+            if scope in {"profile", "dark"}:
+                for package in fedora.split():
+                    self.assertIn(package, arguments)
+        for package in ("ShellCheck", "ibm-plex-sans-fonts", "lxqt-policykit"):
+            self.assertIn(package, arguments)
+        self.assertTrue(self.useradd.exists())
+
+    def test_package_installation_failure_still_stops_the_job(self):
+        result = self.run_install_step(status="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.packages.exists())
+        self.assertFalse(self.useradd.exists())
 
 
 class FedoraChanges(unittest.TestCase):

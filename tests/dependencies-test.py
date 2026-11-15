@@ -178,6 +178,28 @@ class InstallerDependencies(IsolatedTest):
             self.assertIn(f"Optional command not found: {command}.", result.stderr)
         self.assertTrue((config / "sway-noir/start-sway-noir").is_file())
 
+    def test_missing_fedora_nvidia_tools_do_not_suggest_a_base_repository_package(self):
+        for atomic in (False, True):
+            with self.subTest(atomic=atomic):
+                result, config = self.install(missing={"nvidia-smi"}, atomic=atomic,
+                                              arguments=("--check-deps",))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("Optional command not found: nvidia-smi.", result.stderr)
+                self.assertNotIn("xorg-x11-drv-nvidia", result.stderr)
+                self.assertFalse(config.exists())
+
+    def test_nvidia_package_hints_remain_available_for_debian_and_arch(self):
+        for os_release, command, package in (
+            ("ID=debian\n", "sudo apt install", "nvidia-smi"),
+            ("ID=arch\n", "sudo pacman -S --needed", "nvidia-utils"),
+        ):
+            with self.subTest(os_release=os_release):
+                result, config = self.install(missing={"nvidia-smi"}, os_release=os_release,
+                                              arguments=("--check-deps",))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertRegex(result.stderr, re.escape(command) + r" [^\n]*\b" + package + r"\b")
+                self.assertFalse(config.exists())
+
     def test_fedora_libexec_agent_does_not_produce_a_missing_warning(self):
         result, config = self.install(missing={"lxqt-policykit-agent"}, libexec_agent=True)
         self.assertEqual(result.returncode, 0, result.stderr)

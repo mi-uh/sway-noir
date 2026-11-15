@@ -42,6 +42,9 @@ automatically cancels the previous run of the same workflow for that PR/ref.
   Missing comparison data runs Fedora conservatively. Renames and deletions are
   included in the decision.
 
+Fedora package installation remains strict. Provider-specific NVIDIA tools are
+not installed in the base-repository container; their runtime handling uses mocks.
+
 All three workflows can also be started through **Actions → workflow → Run
 workflow**. A manual Fedora run always performs the full compatibility check.
 For unrelated changes the Fedora job is visibly skipped rather than hiding the

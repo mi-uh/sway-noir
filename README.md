@@ -184,8 +184,10 @@ units, add this list to `local.jsonc` (or uncomment it in the
 
 CPU temperatures use Intel/AMD kernel sensors, with CPU thermal zones as a
 fallback. Missing temperatures leave utilization visible. NVIDIA GPU readings
-require the driver's `nvidia-smi`; unavailable GPUs are hidden. No sensor packages
-are required. Remove an old local GPU `exec` to use the built-in combined reading.
+require the driver's `nvidia-smi`; unavailable GPUs are hidden. On Fedora, obtain
+it from your chosen NVIDIA driver provider, not the base repositories. No sensor
+packages are required. Remove an old local GPU `exec` to use the built-in combined
+reading.
 For another GPU, override `exec` with
 `"\"$SWAY_NOIR_DIR/session/hardware-status\" gpu 1"`.
 
