@@ -30,9 +30,14 @@ automatically cancels the previous run of the same workflow for that PR/ref.
   installing the desktop packages.
 - **Secret scan:** checks the full fetched history and current files.
 - **Fedora dependencies:** starts the expensive Fedora 44 job only when changes
-  affect `dependencies.list`, `install.sh`, `start-sway-noir`, `session/`, test
-  code, or CI workflows/helpers. Markdown-only, screenshot, theme and desktop
-  configuration changes use the fast checks without installing Fedora packages.
+  affect `dependencies.list`, `install.sh`, `start-sway-noir`, `session/`,
+  installation/platform tests, or CI workflows/helpers. The appearance checks
+  `tests/theme-test.py`, `tests/waybar-test.py` and `tests/waybar_config.py`, plus
+  the CI-selection test `tests/ci-test.py`, do not trigger Fedora by themselves.
+  They still run in the regular regression job. Other/new test files and the
+  shared runner `tests/run.sh` remain conservative and trigger Fedora.
+  Markdown-only, screenshot, theme and desktop configuration changes also use
+  the fast checks without installing Fedora packages.
   PR comparisons use the merge base; pushes inspect the complete pushed range.
   Missing comparison data runs Fedora conservatively. Renames and deletions are
   included in the decision.

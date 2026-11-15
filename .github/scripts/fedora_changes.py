@@ -8,8 +8,18 @@ import re
 import subprocess
 
 
+# These checks do not exercise Fedora's installed packages. Keep other/new test
+# files conservative: they may cover installation or platform compatibility.
+FAST_ONLY_TESTS = frozenset({
+    "tests/ci-test.py",
+    "tests/theme-test.py",
+    "tests/waybar-test.py",
+    "tests/waybar_config.py",
+})
+
+
 def relevant_path(path):
-    if path.lower().endswith(".md"):
+    if path.lower().endswith(".md") or path in FAST_ONLY_TESTS:
         return False
     return path in {"dependencies.list", "install.sh", "start-sway-noir"} or path.startswith(
         ("session/", "tests/", ".github/workflows/", ".github/scripts/")

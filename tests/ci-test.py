@@ -58,7 +58,9 @@ class FedoraChanges(unittest.TestCase):
     def test_relevant_paths(self):
         for path in (
             "dependencies.list", "install.sh", "start-sway-noir", "session/theme",
-            "session/installer/files.sh", "tests/install-test.sh", "tests/ci-test.py",
+            "session/installer/files.sh", "tests/install-test.sh", "tests/preflight-test.sh",
+            "tests/dependencies-test.py", "tests/registry-test.sh", "tests/polkit-test.py",
+            "tests/run.sh", "tests/new-platform-test.py", "tests/new-helper.py",
             ".github/workflows/secrets.yml", ".github/scripts/fedora_changes.py",
         ):
             with self.subTest(path=path):
@@ -69,6 +71,7 @@ class FedoraChanges(unittest.TestCase):
             "README.md", "ASSETS.md", "tests/README.md", ".github/scripts/README.md",
             "screenshots/rain.webp", "themes/praxis/wallpaper.png", "themes/rain/theme.conf",
             "waybar/config.jsonc", "sway/config.d/99-startup.conf", "session-other/config",
+            "tests/theme-test.py", "tests/waybar-test.py", "tests/waybar_config.py", "tests/ci-test.py",
         ):
             with self.subTest(path=path):
                 self.assertFalse(CHANGES.relevant_path(path))
@@ -79,6 +82,50 @@ class FedoraChanges(unittest.TestCase):
 
     def test_dependency_push_runs_fedora(self):
         (self.repository / "dependencies.list").write_text("New dependency\n")
+        self.assertTrue(self.push_decision(self.commit()))
+
+    def test_appearance_changes_with_tests_skip_fedora_for_push_and_pr(self):
+        for path in ("themes/praxis/waybar/style.css", "themes/retro/waybar/style.css",
+                     "waybar/base.jsonc", "tests/theme-test.py", "tests/waybar-test.py",
+                     "tests/waybar_config.py", "tests/README.md"):
+            file = self.repository / path
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("Appearance change\n")
+        head = self.commit()
+        self.assertFalse(self.push_decision(head))
+        required, _ = CHANGES.needs_fedora(
+            "pull_request", {"pull_request": {"base": {"sha": self.base}, "head": {"sha": head}}},
+            self.repository,
+        )
+        self.assertFalse(required)
+        self.run_cli({"before": self.base, "after": head}, "false")
+
+    def test_platform_tests_still_trigger_fedora_alongside_appearance_tests(self):
+        tests = self.repository / "tests"
+        tests.mkdir()
+        (tests / "theme-test.py").write_text("Appearance check\n")
+        (tests / "dependencies-test.py").write_text("Dependency check\n")
+        head = self.commit()
+        self.assertTrue(self.push_decision(head))
+        required, _ = CHANGES.needs_fedora(
+            "pull_request", {"pull_request": {"base": {"sha": self.base}, "head": {"sha": head}}},
+            self.repository,
+        )
+        self.assertTrue(required)
+
+    def test_session_changes_still_trigger_fedora_alongside_appearance_tests(self):
+        for path in ("tests/theme-test.py", "session/theme"):
+            file = self.repository / path
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("Change\n")
+        self.assertTrue(self.push_decision(self.commit()))
+
+    def test_renaming_appearance_test_to_platform_test_runs_fedora(self):
+        tests = self.repository / "tests"
+        tests.mkdir()
+        (tests / "theme-test.py").write_text("Test\n")
+        self.base = self.commit()
+        self.git("mv", "tests/theme-test.py", "tests/dependencies-test.py")
         self.assertTrue(self.push_decision(self.commit()))
 
     def test_empty_commit_skips_fedora(self):
