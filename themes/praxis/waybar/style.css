@@ -90,6 +90,8 @@ window#waybar.bottom {
     padding: 0 16px;
 }
 
+/* Include new right-hand status modules, without styling their nested widgets. */
+.modules-right > widget > *,
 #cpu,
 #memory,
 #network,

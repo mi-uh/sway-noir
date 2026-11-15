@@ -17,6 +17,11 @@
     "justify": "center",
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
   },
+  "custom/gpu": {
+    "format": "<span size=\"small\" foreground=\"{{muted}}\">GPU</span>  <span weight=\"semibold\">{:0>2}</span>",
+    "align": 0.5,
+    "justify": "center"
+  },
   "network": {
     "align": 0.5,
     "justify": "center",

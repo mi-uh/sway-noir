@@ -257,6 +257,12 @@ assert_file "$test_config/sway-noir/start-sway-noir"
     fail 'theme/lock helpers were not installed executable'
 assert_file "$test_config/sway-noir/themes/rain/theme.conf"
 assert_same "$repo_root/waybar/base.jsonc" "$test_config/sway-noir/waybar/base.jsonc"
+assert_same "$repo_root/waybar/local.jsonc.example" "$test_config/sway-noir/waybar/local.jsonc.example"
+[[ ! -e "$test_config/sway-noir/waybar/local.jsonc" ]] || fail 'installer activated personal Waybar overrides'
+local_waybar="$test_config/sway-noir/waybar/local.jsonc"
+printf '{"cpu": {"interval": 11}}\n' > "$test_root/personal-waybar.jsonc"
+ln -s "$test_root/personal-waybar.jsonc" "$local_waybar"
+local_waybar_hash="$(sha256sum < "$local_waybar")"
 assert_file "$test_config/sway-noir/themes/retro/waybar/style.css"
 for component in theme.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini swaylock/config; do
     assert_same "$repo_root/themes/praxis/$component" "$test_config/sway-noir/themes/praxis/$component"
@@ -312,9 +318,16 @@ for command_name in chmod date dirname find findmnt grep head install mktemp mv 
 done
 optional_home="$test_root/optional-home"
 optional_config="$optional_home/config"
+install -D -m 600 "$test_root/personal-waybar.jsonc" "$optional_config/sway-noir/waybar/local.jsonc"
 HOME="$optional_home" XDG_CONFIG_HOME="$optional_config" PATH="$optional_bin" \
     "$repo_root/install.sh" --profile-only > "$test_root/optional.log" 2>&1
 [[ -x "$optional_config/sway-noir/session/screenshot" ]] || fail 'missing slurp blocked installation'
+assert_same "$test_root/personal-waybar.jsonc" "$optional_config/sway-noir/waybar/local.jsonc"
+[[ "$(stat -c '%a' "$optional_config/sway-noir/waybar/local.jsonc")" == 600 ]] ||
+    fail 'installation changed personal Waybar configuration permissions'
+HOME="$optional_home" XDG_CONFIG_HOME="$optional_config" PATH="$optional_bin" \
+    "$repo_root/install.sh" --profile-only > "$test_root/optional-update.log" 2>&1
+assert_same "$test_root/personal-waybar.jsonc" "$optional_config/sway-noir/waybar/local.jsonc"
 grep -Fq 'Optional command not found: slurp.' "$test_root/optional.log" ||
     fail 'missing optional region selector was not reported'
 if [[ -f "$test_config/xdg-desktop-portal/sway-portals.conf" ]]; then
@@ -371,6 +384,11 @@ assert_file "$test_config/outside.txt"
 assert_file "$test_config/sway-noir/themes/personal/theme.conf"
 [[ "$(< "$test_state/sway-noir/current/theme-id")" == retro ]] ||
     fail 'update changed the saved design'
+[[ -L "$local_waybar" && "$(sha256sum < "$local_waybar")" == "$local_waybar_hash" ]] ||
+    fail 'update changed personal Waybar overrides or their symlink'
+if grep -Eq '  waybar/local\.jsonc$' "$test_config/sway-noir/.installed-files.sha256"; then
+    fail 'personal Waybar overrides were adopted into the managed-file manifest'
+fi
 
 # Update a previously installed default theme to its new name and ID.
 (
@@ -418,6 +436,8 @@ assert_file "$test_config/sway-noir/.installed-files.sha256"
 [[ -L "$test_config/sway-noir/fuzzel/fuzzel.ini" ]] || fail 'symbolic link was removed'
 [[ -L "$test_config/sway-noir/gammastep/config.ini" ]] || fail 'dangling symbolic link was removed'
 assert_file "$test_config/sway-noir/personal.conf"
+[[ -L "$local_waybar" && "$(sha256sum < "$local_waybar")" == "$local_waybar_hash" ]] ||
+    fail 'uninstall changed personal Waybar overrides or their symlink'
 assert_file "$test_config/sway-noir/themes/personal/theme.conf"
 [[ "$(< "$test_state/sway-noir/current/theme-id")" == retro ]] ||
     fail 'uninstall removed the saved design'

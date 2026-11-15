@@ -81,13 +81,14 @@ window#waybar.empty #window {
     border-color: transparent;
 }
 
+/* Include new right-hand status modules, without styling their nested widgets. */
+.modules-right > widget > *,
 #tray,
 #pulseaudio,
 #network,
 #cpu,
 #memory,
 #battery,
-#custom-gpu,
 #clock {
     padding: 0 10px;
     color: @text;

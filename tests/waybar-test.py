@@ -80,6 +80,18 @@ class WaybarTests(unittest.TestCase):
         self.assertRegex(label, r"[A-Za-z]{2,}")
         self.assertFalse(private_use_characters(label))
 
+    def test_gpu_presets_only_define_appearance_and_do_not_enable_the_module(self):
+        for theme, config in self.configurations.items():
+            with self.subTest(theme=theme):
+                self.assertEqual(set(config["custom/gpu"]),
+                                 {"format", "align", "justify"} if theme == "praxis" else {"format"})
+                for position in ("left", "center", "right"):
+                    self.assertNotIn("custom/gpu", config[f"modules-{position}"])
+        # Copying the example must not pin GPU appearance against the theme.
+        example = self.configuration_texts[Path("waybar/local.jsonc.example")]
+        for key in ("format", "align", "justify"):
+            self.assertNotIn(f'"{key}":', example)
+
     def test_theme_overrides_do_not_duplicate_shared_behavior(self):
         for filename in ("waybar/config.jsonc", "themes/praxis/waybar/config.jsonc",
                          "themes/retro/waybar/config.jsonc"):
@@ -132,6 +144,26 @@ class WaybarTests(unittest.TestCase):
             r'font-family:\s*"\{\{font\}\}",\s*sans-serif\s*;',
         )
         self.assertIn("font=IBM Plex Sans", self.configuration_texts[Path("themes/rain/theme.conf")])
+
+    def test_new_right_hand_modules_share_cpu_styling_in_every_theme(self):
+        for filename in ("waybar/style.css", "themes/praxis/waybar/style.css",
+                         "themes/retro/waybar/style.css"):
+            with self.subTest(path=filename):
+                css = self.configuration_texts[Path(filename)]
+                css = re.sub(r"/\*[\s\S]*?\*/", "", css)
+                rules = [(selectors.split(","), body)
+                         for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)]
+                # Match the module child of the EventBox, not nested labels,
+                # tray icons or workspace buttons. No per-module CSS is needed.
+                status_rules = [body for selectors, body in rules
+                                if ".modules-right > widget > *" in
+                                [selector.strip() for selector in selectors]]
+                self.assertEqual(len(status_rules), 1)
+                self.assertIn("padding:", status_rules[0])
+                self.assertNotIn("#custom-gpu", css)
+                cpu_rules = [body for selectors, body in rules
+                             if "#cpu" in [selector.strip() for selector in selectors]]
+                self.assertIn(status_rules[0], cpu_rules)
 
     def test_private_use_detection_covers_all_planes(self):
         for codepoint in (0xE000, 0xF8FF, 0xF0000, 0xFFFFD, 0x100000, 0x10FFFD):

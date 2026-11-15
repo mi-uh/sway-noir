@@ -7,6 +7,7 @@
   "sway/window": {"max-length": 36},
   "cpu": {"format": "CPU:{usage}"},
   "memory": {"format": "MEM:{percentage}"},
+  "custom/gpu": {"format": "GPU:{}"},
   "network": {
     "format-wifi": "WLAN:{signalStrength}",
     "format-ethernet": "LINK:UP",
