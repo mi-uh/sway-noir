@@ -47,7 +47,13 @@ class Themes(unittest.TestCase):
         self.script("sway", 'printf "validate %s\\n" "$*" >> "$THEME_LOG"\nexit "${FAIL_VALIDATE:-0}"\n')
         self.script("swaymsg", 'printf "swaymsg %s\\n" "$*" >> "$THEME_LOG"\nexit "${FAIL_RELOAD:-0}"\n')
         self.script("systemctl", 'printf "systemctl %s\\n" "$*" >> "$THEME_LOG"\nexit "${FAIL_UI:-0}"\n')
-        self.script("fuzzel", 'cat > "$THEME_LOG.menu"\nprintf "%s\\n" "${MENU_INDEX:-0}"\nexit "${MENU_STATUS:-0}"\n')
+        self.script("fuzzel", 'menu="$THEME_LOG.menu"\nindex="${MENU_INDEX:-0}"\nstatus="${MENU_STATUS:-0}"\n'
+                    'for argument; do\n'
+                    '  if [[ "$argument" == "--prompt=waybar: " ]]; then\n'
+                    '    menu="$THEME_LOG.position-menu"\n'
+                    '    index="${POSITION_INDEX:-0}"\nstatus="${POSITION_STATUS:-0}"\n'
+                    '  fi\ndone\n'
+                    'cat > "$menu"\nprintf "%s\\n" "$index"\nexit "$status"\n')
 
     def script(self, name, body):
         path = self.bin / name
@@ -72,6 +78,7 @@ class Themes(unittest.TestCase):
     def test_inspection_is_read_only_and_default_is_rain(self):
         self.assertEqual(self.run_theme("list").stdout.splitlines(), list(BUNDLED_THEMES))
         self.assertEqual(self.run_theme("current").stdout, "rain\n")
+        self.assertEqual(self.run_theme("bar-position").stdout, "default\n")
         self.assertFalse(self.state.exists())
 
     def test_rain_render_preserves_palette_and_geometry(self):
@@ -135,6 +142,122 @@ class Themes(unittest.TestCase):
         self.assertEqual(self.run_theme("current").stdout, "retro\n")
         self.assert_complete()
 
+    def test_legacy_state_without_bar_position_uses_theme_defaults(self):
+        self.run_theme("set", "retro", "--no-reload")
+        (self.current / "bar-position").unlink()
+        original = self.current.resolve()
+        self.assertEqual(self.run_theme("bar-position").stdout, "default\n")
+        self.assertEqual(self.current.resolve(), original)
+        self.assertFalse((self.current / "bar-position").exists())
+        self.run_theme("init")
+        self.assertEqual((self.current / "bar-position").read_text(), "default\n")
+        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "bottom")
+        self.assert_complete()
+
+    def test_fixed_bar_positions_survive_all_theme_switches_and_login(self):
+        for position in ("top", "bottom"):
+            self.assertEqual(self.run_theme("bar-position", position).stdout, position + "\n")
+            for theme in BUNDLED_THEMES:
+                with self.subTest(position=position, theme=theme):
+                    self.run_theme("set", theme)
+                    self.run_theme("init")
+                    self.assertEqual(self.run_theme("current").stdout, theme + "\n")
+                    self.assertEqual(self.run_theme("bar-position").stdout, position + "\n")
+                    config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                    self.assertEqual(config["position"], position)
+                    self.assertEqual(config["margin-top"], 8 if theme == "rain" and position == "top" else 0)
+                    self.assertEqual(config["margin-bottom"], 8 if theme == "rain" and position == "bottom" else 0)
+                    self.assertEqual(config["margin-left"], 8 if theme == "rain" else 0)
+                    self.assertEqual(config["margin-right"], 8 if theme == "rain" else 0)
+                    self.assert_complete()
+        log = self.log.read_text()
+        self.assertIn("swaymsg -r reload", log)
+        self.assertIn("--signal=USR2", log)
+
+    def test_default_bar_position_restores_each_themes_layout(self):
+        for theme in BUNDLED_THEMES:
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                original = (self.current / "waybar/config.jsonc").read_text()
+                self.run_theme("bar-position", "bottom" if theme == "rain" else "top", "--no-reload")
+                self.assertEqual(self.run_theme("bar-position", "default", "--no-reload").stdout, "default\n")
+                self.assertEqual((self.current / "waybar/config.jsonc").read_text(), original)
+                self.assertEqual(self.run_theme("current").stdout, theme + "\n")
+                self.assert_complete()
+        self.assertFalse(self.log.exists())
+
+    def test_offline_bar_position_can_be_set_before_first_login(self):
+        self.run_theme("bar-position", "bottom", "--no-reload", SWAYSOCK="", SWAY_NOIR_SESSION_ID="")
+        self.assertEqual(self.run_theme("current").stdout, "rain\n")
+        self.run_theme("init")
+        self.assertEqual(self.run_theme("bar-position").stdout, "bottom\n")
+        config = json.loads((self.current / "waybar/config.jsonc").read_text())
+        self.assertEqual(config["position"], "bottom")
+        self.assertEqual(config["margin-bottom"], 8)
+        self.assertFalse(self.log.exists())
+        self.assert_complete()
+
+    def test_personal_theme_bar_defaults_and_asymmetric_spacing(self):
+        theme = self.profile / "themes/personal"
+        theme.mkdir()
+        (theme / "theme.conf").write_text(
+            "name=Personal\nbar_position=bottom\nbar_margin_top=3\nbar_margin_bottom=12\n"
+        )
+        self.run_theme("set", "personal", "--no-reload")
+        for position, expected in (
+            ("default", ("bottom", 3, 12)), ("top", ("top", 12, 3)),
+            ("bottom", ("bottom", 3, 12)), ("default", ("bottom", 3, 12)),
+        ):
+            with self.subTest(position=position):
+                self.run_theme("bar-position", position, "--no-reload")
+                self.run_theme("init")
+                config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                self.assertEqual((config["position"], config["margin-top"], config["margin-bottom"]), expected)
+                self.assert_complete()
+
+    def test_failed_position_change_preserves_theme_and_preference(self):
+        self.run_theme("set", "retro", "--no-reload")
+        self.run_theme("bar-position", "top", "--no-reload")
+        original = self.current.resolve()
+        for failure in ("FAIL_VALIDATE", "FAIL_RELOAD"):
+            with self.subTest(failure=failure):
+                self.run_theme("bar-position", "bottom", success=False, **{failure: "1"})
+                self.assertEqual(self.current.resolve(), original)
+                self.assertEqual(self.run_theme("current").stdout, "retro\n")
+                self.assertEqual(self.run_theme("bar-position").stdout, "top\n")
+                self.assert_complete()
+        self.assertNotIn("systemctl", self.log.read_text())
+
+    def test_failed_theme_change_preserves_fixed_position(self):
+        self.run_theme("bar-position", "bottom", "--no-reload")
+        original = self.current.resolve()
+        self.run_theme("set", "retro", success=False, FAIL_RELOAD="1")
+        self.assertEqual(self.current.resolve(), original)
+        self.assertEqual(self.run_theme("current").stdout, "rain\n")
+        self.assertEqual(self.run_theme("bar-position").stdout, "bottom\n")
+        self.assert_complete()
+
+    def test_invalid_bar_position_and_arguments_do_not_change_state(self):
+        self.run_theme("init")
+        original = self.current.resolve()
+        for arguments in (("left",), ("",), ("TOP",), ("$(false)",), ("../top",),
+                          ("top", "--unknown"), ("top", "--no-reload", "extra")):
+            with self.subTest(arguments=arguments):
+                self.run_theme("bar-position", *arguments, success=False)
+        self.assertEqual(self.current.resolve(), original)
+        self.assert_complete()
+
+    def test_invalid_saved_position_is_rejected_and_can_be_repaired(self):
+        self.run_theme("init")
+        original = self.current.resolve()
+        (self.current / "bar-position").write_text("left\n")
+        for arguments in (("bar-position",), ("init",), ("set", "retro", "--no-reload")):
+            self.run_theme(*arguments, success=False)
+            self.assertEqual(self.current.resolve(), original)
+        self.run_theme("bar-position", "default", "--no-reload")
+        self.assertEqual(self.run_theme("bar-position").stdout, "default\n")
+        self.assert_complete()
+
     def test_validation_is_headless_without_changing_live_reload_environment(self):
         self.run_theme("init")
         self.script("sway", '[[ "$WLR_BACKENDS" == headless && "$WLR_RENDERER" == pixman ]]\n'
@@ -151,11 +274,14 @@ class Themes(unittest.TestCase):
 
     def test_offline_selection_and_missing_saved_theme_fallback(self):
         self.run_theme("set", "retro", "--no-reload", SWAYSOCK="", SWAY_NOIR_SESSION_ID="")
+        self.run_theme("bar-position", "bottom", "--no-reload", SWAYSOCK="", SWAY_NOIR_SESSION_ID="")
         self.assertFalse(self.log.exists())
         (self.profile / "themes/retro/theme.conf").unlink()
         result = self.run_theme("init")
         self.assertIn("using Rain", result.stderr)
         self.assertEqual(self.run_theme("current").stdout, "rain\n")
+        self.assertEqual(self.run_theme("bar-position").stdout, "bottom\n")
+        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "bottom")
 
     def test_bundled_status_labels_have_no_percent_signs(self):
         for theme in BUNDLED_THEMES:
@@ -315,6 +441,10 @@ class Themes(unittest.TestCase):
         result = self.run_theme("set", "retro", FAIL_UI="1")
         self.assertIn("Warning:", result.stderr)
         self.assertEqual(self.run_theme("current").stdout, "retro\n")
+        result = self.run_theme("bar-position", "top", FAIL_UI="1")
+        self.assertIn("Warning:", result.stderr)
+        self.assertEqual(self.run_theme("bar-position").stdout, "top\n")
+        self.assertEqual(self.run_theme("current").stdout, "retro\n")
         self.assert_complete()
 
     def test_bad_ids_values_and_templates_do_not_change_current(self):
@@ -324,7 +454,8 @@ class Themes(unittest.TestCase):
             self.run_theme("set", id_, "--no-reload", success=False)
         theme = self.profile / "themes/bad"
         theme.mkdir()
-        for content in ("accent=green", "font=$(touch /tmp/unsafe)", "wallpaper=../outside.png", "unknown=value", "gaps_inner=100"):
+        for content in ("accent=green", "font=$(touch /tmp/unsafe)", "wallpaper=../outside.png", "unknown=value", "gaps_inner=100",
+                        "bar_position=left", "bar_position=default", "bar_margin_top=-1", "bar_margin_bottom=100"):
             (theme / "theme.conf").write_text(content + "\n")
             self.run_theme("set", "bad", "--no-reload", success=False)
         (theme / "theme.conf").write_text("name=Broken\n")
@@ -336,6 +467,7 @@ class Themes(unittest.TestCase):
     def test_foreign_session_is_rejected(self):
         for environment in ({"SWAYSOCK": ""}, {"SWAY_NOIR_SESSION_ID": "invalid"}, {"SWAY_NOIR_THEME_DIR": "/foreign"}):
             self.run_theme("set", "retro", success=False, **environment)
+            self.run_theme("bar-position", "top", success=False, **environment)
         self.assertFalse(self.state.exists())
 
     def test_menu_selects_by_index_and_cancellation_does_nothing(self):
@@ -346,10 +478,11 @@ class Themes(unittest.TestCase):
         self.assertIn("Rain (rain)", Path(str(self.log) + ".menu").read_text())
         self.assertIn("Praxis (praxis)", Path(str(self.log) + ".menu").read_text())
         self.assertNotIn("Noir", Path(str(self.log) + ".menu").read_text())
+        self.assertIn("Waybar position: Theme default", Path(str(self.log) + ".menu").read_text())
         original = self.current.resolve()
         self.run_theme("select", MENU_STATUS="1")
         self.assertEqual(self.current.resolve(), original)
-        for index in ("-1", "3", "9999999999999999", "$(false)"):
+        for index in ("-1", "4", "9999999999999999", "$(false)"):
             self.run_theme("select", MENU_INDEX=index, success=False)
         self.assertEqual(self.current.resolve(), original)
 
@@ -359,17 +492,46 @@ class Themes(unittest.TestCase):
         self.assertEqual(self.run_theme("current").stdout, "praxis\n")
         self.assert_complete()
 
+    def test_menu_can_set_and_reset_bar_position_without_switching_theme(self):
+        self.run_theme("set", "retro", "--no-reload")
+        for index, position, label in (
+            ("1", "top", "Always top"), ("2", "bottom", "Always bottom"),
+            ("0", "default", "Theme default"),
+        ):
+            with self.subTest(position=position):
+                self.run_theme("select", MENU_INDEX="3", POSITION_INDEX=index)
+                self.assertEqual(self.run_theme("bar-position").stdout, position + "\n")
+                self.assertEqual(self.run_theme("current").stdout, "retro\n")
+                self.run_theme("select", MENU_STATUS="1")
+                self.assertIn("Waybar position: " + label, Path(str(self.log) + ".menu").read_text())
+                self.assert_complete()
+
+    def test_position_menu_marks_current_selection_and_cancel_does_nothing(self):
+        self.run_theme("bar-position", "top", "--no-reload")
+        original = self.current.resolve()
+        self.run_theme("select", MENU_INDEX="3", POSITION_STATUS="1")
+        self.assertEqual(Path(str(self.log) + ".position-menu").read_text().splitlines(),
+                         ["Theme default", "Always top (selected)", "Always bottom"])
+        for index in ("-1", "3", "9999999999999999", "$(false)"):
+            self.run_theme("select", MENU_INDEX="3", POSITION_INDEX=index, success=False)
+        self.assertEqual(self.current.resolve(), original)
+        self.assertFalse(self.log.exists())
+        self.assert_complete()
+
     def test_menu_shows_activation_errors_without_changing_selection(self):
         self.script("swaynag", 'cat > "$THEME_LOG.error"\n'
                     'printf "%s\\n" "$@" >> "$THEME_LOG.error"\n')
         self.run_theme("init")
         original = self.current.resolve()
-        for failure, message in (("FAIL_VALIDATE", "validation failed"),
-                                 ("FAIL_RELOAD", "reload failed")):
-            with self.subTest(failure=failure):
+        for menu_index, failure, message in (
+            ("2", "FAIL_VALIDATE", "validation failed"), ("2", "FAIL_RELOAD", "reload failed"),
+            ("3", "FAIL_VALIDATE", "validation failed"), ("3", "FAIL_RELOAD", "reload failed"),
+        ):
+            with self.subTest(menu_index=menu_index, failure=failure):
                 error = Path(str(self.log) + ".error")
                 error.unlink(missing_ok=True)
-                result = self.run_theme("select", MENU_INDEX="2", success=False, **{failure: "1"})
+                result = self.run_theme("select", MENU_INDEX=menu_index, POSITION_INDEX="2",
+                                        success=False, **{failure: "1"})
                 self.assertIn(message, result.stderr)
                 deadline = time.monotonic() + 5
                 while time.monotonic() < deadline:
@@ -387,6 +549,20 @@ class Themes(unittest.TestCase):
         self.assertEqual(len(results), 9)
         self.assert_complete()
         self.assertIn(self.run_theme("current").stdout.strip(), BUNDLED_THEMES)
+
+    def test_simultaneous_theme_and_position_changes_preserve_both(self):
+        for _ in range(3):
+            self.run_theme("set", "rain", "--no-reload")
+            self.run_theme("bar-position", "default", "--no-reload")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                theme = executor.submit(self.run_theme, "set", "retro", "--no-reload")
+                position = executor.submit(self.run_theme, "bar-position", "top", "--no-reload")
+                theme.result()
+                position.result()
+            self.assertEqual(self.run_theme("current").stdout, "retro\n")
+            self.assertEqual(self.run_theme("bar-position").stdout, "top\n")
+            self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "top")
+            self.assert_complete()
 
     def test_lock_helper_resolves_latest_theme_without_restarting_locker(self):
         self.script("swaylock", 'printf "%s\\n" "$@" > "$THEME_LOG"\n')

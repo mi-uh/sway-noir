@@ -93,7 +93,8 @@ python3 tests/polkit-test.py
 ## Appearance and theme switching
 
 Waybar configuration, font checks, all bundled themes, headless validation,
-visible menu activation errors, persistence and rollback:
+visible menu activation errors, saved bar-position preferences, mirrored margins,
+legacy state, concurrent theme/position changes, persistence and rollback:
 
 ```bash
 python3 tests/waybar-test.py
@@ -107,6 +108,10 @@ python3 tests/theme-test.py
 | Check | Expected result |
 | --- | --- |
 | Switch Rain ↔ Retro ↔ Praxis on all outputs | Correct appearance; windows stay open |
+| Theme menu → Waybar position → Theme default; switch themes | Rain at top; Retro/Praxis at bottom |
+| Select Always top, then Always bottom; switch all themes each time | Bar stays at the selected edge on all outputs; Rain's 8 px gap follows it |
+| Cancel the position submenu with Escape | Theme and position unchanged |
+| Log out/in with a fixed position, then restore Theme default | Position persists; reset restores the current theme's original layout |
 | Open launcher, send notification, lock | Matching theme |
 | Test audio keys and authentication prompts | Controls work; no duplicate agent |
 | Capture region/full screen; cancel selection | Correct files; no file on cancellation |

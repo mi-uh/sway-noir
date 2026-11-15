@@ -2,8 +2,11 @@
 """Validate Waybar configuration and keep the desktop free of icon fonts."""
 
 import json
+import os
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 
 
@@ -50,7 +53,21 @@ class WaybarTests(unittest.TestCase):
                     cls.configuration_texts[path.relative_to(REPO_ROOT)] = path.read_text(
                         encoding="utf-8"
                     )
-        cls.config = load_jsonc(cls.configuration_texts[Path("waybar/config.jsonc")])
+        # Parse rendered configurations, including numeric template values.
+        cls.configurations = {}
+        with tempfile.TemporaryDirectory(
+            prefix="sway-noir-waybar-",
+            dir="/tmp/opencode" if os.access("/tmp/opencode", os.W_OK) else None,
+        ) as directory:
+            for theme in ("rain", "praxis", "retro"):
+                subprocess.run(
+                    [str(REPO_ROOT / "session/theme"), "set", theme, "--no-reload"],
+                    env={**os.environ, "XDG_STATE_HOME": directory}, check=True,
+                    capture_output=True, text=True, timeout=10,
+                )
+                config = Path(directory) / "sway-noir/current/waybar/config.jsonc"
+                cls.configurations[theme] = load_jsonc(config.read_text())
+        cls.config = cls.configurations["rain"]
 
     def test_no_icon_font_references(self):
         pattern = re.compile(r"font\s*awesome|nerd\s*fonts?", re.IGNORECASE)
@@ -67,13 +84,8 @@ class WaybarTests(unittest.TestCase):
         self.assertFalse(private_use_characters(json.dumps(self.config, ensure_ascii=False)))
 
     def test_right_module_order_for_all_profiles(self):
-        for config_path in (
-            "waybar/config.jsonc",
-            "themes/praxis/waybar/config.jsonc",
-            "themes/retro/waybar/config.jsonc",
-        ):
-            with self.subTest(path=config_path):
-                config = load_jsonc(self.configuration_texts[Path(config_path)])
+        for theme, config in self.configurations.items():
+            with self.subTest(theme=theme):
                 self.assertEqual(config["modules-right"], [
                     "pulseaudio", "network", "battery", "cpu", "memory", "tray", "clock",
                 ])

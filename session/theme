@@ -29,8 +29,11 @@ read_theme() {
             bg|surface|surface_alt|border|accent|accent_surface|urgent|text|muted|input|selection|selection_text)
                 [[ "$value" =~ ^#[[:xdigit:]]{6}$ ]] || die "Invalid color $key in $file"
                 ;;
-            gaps_inner|gaps_outer|border_width|radius|bar_radius|bar_button_radius)
+            gaps_inner|gaps_outer|border_width|radius|bar_radius|bar_button_radius|bar_margin_top|bar_margin_bottom)
                 [[ "$value" =~ ^(0|[1-9][0-9]?)$ ]] || die "Invalid size $key in $file (expected 0..99)"
+                ;;
+            bar_position)
+                [[ "$value" == top || "$value" == bottom ]] || die "Invalid bar_position in $file"
                 ;;
             name|font)
                 [[ "$value" =~ ^[[:alnum:]][[:alnum:]\ ._-]*$ ]] || die "Invalid $key in $file"
@@ -75,6 +78,25 @@ selected_id() {
     printf '%s\n' "$id"
 }
 
+valid_bar_position() { [[ "$1" == default || "$1" == top || "$1" == bottom ]]; }
+
+selected_bar_position() {
+    local position=default
+    if [[ -f "$current/bar-position" ]]; then
+        IFS= read -r position < "$current/bar-position"
+    fi
+    valid_bar_position "$position" || die 'Invalid saved Waybar position.'
+    printf '%s\n' "$position"
+}
+
+bar_position_label() {
+    case "$1" in
+        default) printf '%s\n' 'Theme default' ;;
+        top) printf '%s\n' 'Always top' ;;
+        bottom) printf '%s\n' 'Always bottom' ;;
+    esac
+}
+
 list_themes() {
     local file id
     for file in "$profile_dir"/themes/*/theme.conf; do
@@ -86,7 +108,14 @@ list_themes() {
 }
 
 render() {
-    local id="$1" output source content key token
+    local id="$1" bar_position="$2" output source content key token margin_top
+    if [[ "$bar_position" != default && "$bar_position" != "${values[bar_position]}" ]]; then
+        # Mirror vertical spacing when moving the bar to the opposite edge.
+        margin_top="${values[bar_margin_top]}"
+        values[bar_margin_top]="${values[bar_margin_bottom]}"
+        values[bar_margin_bottom]="$margin_top"
+        values[bar_position]="$bar_position"
+    fi
     generation="$(mktemp -d "$state_dir/theme.XXXXXXXX")"
     for output in "${outputs[@]}"; do
         source="$profile_dir/$output"
@@ -110,6 +139,7 @@ render() {
         printf 'image=%s/%s\n' "$profile_dir" "${values[lock_wallpaper]}" >> "$generation/swaylock/config"
     fi
     printf '%s\n' "$id" > "$generation/theme-id"
+    printf '%s\n' "$bar_position" > "$generation/bar-position"
 }
 
 remove_generation() {
@@ -117,7 +147,7 @@ remove_generation() {
     # Delete only our known generated files, never a broad or user-given tree.
     [[ "${directory%/*}" == "$state_dir" && "${directory##*/}" =~ ^theme\.[[:alnum:]]{8}$ &&
        -d "$directory" && ! -L "$directory" ]] || return 0
-    for output in "${outputs[@]}" theme-id; do rm -f -- "$directory/$output"; done
+    for output in "${outputs[@]}" theme-id bar-position; do rm -f -- "$directory/$output"; done
     rmdir -- "$directory/waybar" "$directory/fuzzel" "$directory/mako" "$directory/swaylock" "$directory" 2>/dev/null || true
 }
 
@@ -127,13 +157,13 @@ cleanup() {
 }
 
 activate() {
-    local id="$1" live="$2" previous="" reply
+    local id="$1" live="$2" bar_position="${3:-saved}" previous="" reply
     [[ "$state_home" == /* ]] || die 'XDG_STATE_HOME must be an absolute path.'
     install -d -m 700 "$state_dir"
     exec 9> "$state_dir/theme.lock"
     flock -x 9
     trap cleanup EXIT
-    # Refresh selection while holding the lock during session startup.
+    # Refresh saved settings under the lock so concurrent changes are retained.
     if [[ "$id" == --saved ]]; then
         id="$(selected_id)"
         if [[ ! -f "$profile_dir/themes/$id/theme.conf" ]]; then
@@ -141,10 +171,12 @@ activate() {
             id="$default_theme"
         fi
     fi
+    if [[ "$bar_position" == saved ]]; then bar_position="$(selected_bar_position)"; fi
+    valid_bar_position "$bar_position" || die "Invalid Waybar position: $bar_position"
     load_theme "$id"
     [[ ! -e "$current" || -L "$current" ]] || die "Refusing to replace non-symlink: $current"
     if [[ -L "$current" ]]; then previous="$(readlink -- "$current")"; fi
-    render "$id"
+    render "$id" "$bar_position"
     # Even --validate initializes wlroots. Do not inherit the live session's
     # backend/renderer or require a working nested compositor and GPU here.
     if [[ "$live" == true ]] && ! reply="$(SWAY_NOIR_DIR="$profile_dir" \
@@ -173,29 +205,38 @@ activate() {
         # Signal only this session's supervisor; it reloads its own Waybar/Mako.
         if ! systemctl --user kill --kill-whom=main --signal=USR2 \
             "sway-noir-apps-${SWAY_NOIR_SESSION_ID}.service"; then
-            warn 'Theme saved, but the desktop appearance reload could not be requested.'
+            warn 'Appearance settings saved, but the desktop appearance reload could not be requested.'
         fi
     fi
     generation=""
     [[ -z "$previous" ]] || remove_generation "$previous"
-    printf '%s\n' "$id"
+    if [[ "${3:-saved}" == saved ]]; then
+        printf '%s\n' "$id"
+    else
+        printf '%s\n' "$bar_position"
+    fi
 }
 
 require_session() {
     [[ -n "${SWAYSOCK:-}" && "${SWAY_NOIR_SESSION_ID:-}" =~ ^[0-9]+-[0-9]+-[0-9]+$ &&
        "${SWAY_NOIR_THEME_DIR:-}" == "$current" ]] ||
-        die 'Run this command inside Sway Noir (or use set ID --no-reload for the next login).'
+        die 'Run this command inside Sway Noir (or use --no-reload when setting options for the next login).'
 }
 
 usage() {
-    printf '%s\n' 'Usage: session/theme list | current | select | set ID [--no-reload] | init'
+    printf '%s\n' 'Usage: session/theme list | current | select | set ID [--no-reload] | init' \
+        '       session/theme bar-position [default|top|bottom] [--no-reload]'
 }
 
 case "${1:-select}" in
     list) (( $# == 1 )) || die 'Unexpected arguments.'; list_themes ;;
     current) (( $# == 1 )) || die 'Unexpected arguments.'; selected_id ;;
     init) (( $# == 1 )) || die 'Unexpected arguments.'; activate --saved false ;;
-    set)
+    set|bar-position)
+        if [[ "$1" == bar-position ]]; then
+            if (( $# == 1 )); then selected_bar_position; exit 0; fi
+            valid_bar_position "$2" || die "Invalid Waybar position: $2"
+        fi
         (( $# == 2 || $# == 3 )) || { usage >&2; exit 2; }
         live=true
         if (( $# == 3 )); then
@@ -204,7 +245,11 @@ case "${1:-select}" in
         else
             require_session
         fi
-        activate "$2" "$live"
+        if [[ "$1" == bar-position ]]; then
+            activate --saved "$live" "$2"
+        else
+            activate "$2" "$live"
+        fi
         ;;
     select)
         (( $# <= 1 )) || die 'Unexpected arguments.'
@@ -217,19 +262,39 @@ case "${1:-select}" in
             ids+=("$id")
             labels+=("${values[name]} ($id)")
         done < <(list_themes)
+        position="$(selected_bar_position)"
+        labels+=("Waybar position: $(bar_position_label "$position")")
         if ! index="$(printf '%s\n' "${labels[@]}" | fuzzel --dmenu --index \
             --config="$current/fuzzel/fuzzel.ini" --prompt='theme: ' )"; then
             exit 0
         fi
         [[ "$index" =~ ^(0|[1-9][0-9]*)$ && ${#index} -lt 6 ]] || die 'Invalid theme selection.'
-        (( index < ${#ids[@]} )) || die 'Invalid theme selection.'
+        (( index < ${#labels[@]} )) || die 'Invalid theme selection.'
+        if (( index == ${#ids[@]} )); then
+            positions=(default top bottom)
+            labels=()
+            for option in "${positions[@]}"; do
+                label="$(bar_position_label "$option")"
+                [[ "$option" != "$position" ]] || label+=' (selected)'
+                labels+=("$label")
+            done
+            if ! index="$(printf '%s\n' "${labels[@]}" | fuzzel --dmenu --index \
+                --config="$current/fuzzel/fuzzel.ini" --prompt='waybar: ' )"; then
+                exit 0
+            fi
+            [[ "$index" =~ ^(0|[1-9][0-9]*)$ && ${#index} -lt 6 ]] || die 'Invalid Waybar position selection.'
+            (( index < ${#positions[@]} )) || die 'Invalid Waybar position selection.'
+            command=(bar-position "${positions[index]}")
+        else
+            command=(set "${ids[index]}")
+        fi
         # Run activation separately so all failures (including set -e errors)
         # can be shown when launched by a keybinding without a terminal.
-        if ! reply="$("$profile_dir/session/theme" set "${ids[index]}" 2>&1)"; then
+        if ! reply="$("$profile_dir/session/theme" "${command[@]}" 2>&1)"; then
             printf '%s\n' "$reply" >&2
             # Activation has already exited and released its lock. The error
             # panel must not hold up cleanup or the next selection.
-            swaynag -t error -m 'Could not switch theme. See details below.' \
+            swaynag -t error -m 'Could not apply appearance settings. See details below.' \
                 --detailed-message <<< "$reply" >/dev/null 2>&1 &
             exit 1
         fi

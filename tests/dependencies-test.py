@@ -305,7 +305,13 @@ class OptionalCommands(IsolatedTest):
         self.assertEqual(self.run_optional("--shell", "test-feature", "exit 5").returncode, 5)
 
     def test_waybar_click_honors_session_command_override(self):
-        command = json.loads((ROOT / "waybar/config.jsonc").read_text())["pulseaudio"]["on-click"]
+        state = self.directory / "state"
+        subprocess.run(
+            [str(ROOT / "session/theme"), "init"],
+            env={**os.environ, "XDG_STATE_HOME": str(state)}, check=True,
+            capture_output=True, text=True, timeout=10,
+        )
+        command = json.loads((state / "sway-noir/current/waybar/config.jsonc").read_text())["pulseaudio"]["on-click"]
         self.environment["SWAY_NOIR_AUDIO_SETTINGS_COMMAND"] = "record 'custom audio settings'"
         result = subprocess.run(
             ["/usr/bin/bash", "-c", command], env=self.environment, capture_output=True, text=True,
