@@ -28,8 +28,8 @@ def private_use_characters(text):
     }
 
 
-def status_borders(css, module):
-    """Resolve border shorthands for the simple right-hand selectors used here.
+def status_declarations(css, module):
+    """Resolve the simple right-hand selector cascade used here.
 
     This only checks static rules, not GTK rendering or pseudo-class states.
     """
@@ -43,14 +43,36 @@ def status_borders(css, module):
                        if selector.strip() in supported]
         if specificity:
             matches.append((max(specificity), order, body))
-    borders = {}
     for _specificity, _order, body in sorted(matches):
         for key, value in re.findall(r"([\w-]+)\s*:\s*([^;]+);", body):
-            if key == "border":
-                borders.update({side: value.strip() for side in ("left", "right", "top", "bottom")})
-            elif key in ("border-left", "border-right", "border-top", "border-bottom"):
-                borders[key.removeprefix("border-")] = value.strip()
+            yield key, value.strip()
+
+
+def status_borders(css, module):
+    borders = {}
+    for key, value in status_declarations(css, module):
+        if key == "border":
+            borders.update({side: value for side in ("left", "right", "top", "bottom")})
+        elif key in ("border-left", "border-right", "border-top", "border-bottom"):
+            borders[key.removeprefix("border-")] = value
     return borders
+
+
+def status_padding(css, module):
+    padding = {}
+    for key, value in status_declarations(css, module):
+        if key == "padding":
+            values = value.split()
+            if len(values) == 1:
+                values *= 4
+            elif len(values) == 2:
+                values *= 2
+            elif len(values) == 3:
+                values.append(values[1])
+            padding.update(dict(zip(("top", "right", "bottom", "left"), values)))
+        elif key.startswith("padding-"):
+            padding[key.removeprefix("padding-")] = value
+    return {side: int(value.removesuffix("px")) for side, value in padding.items()}
 
 
 class WaybarTests(unittest.TestCase):
@@ -158,6 +180,31 @@ class WaybarTests(unittest.TestCase):
                 for module in hardware:
                     for side in ("top", "bottom"):
                         self.assertTrue(borders[module][side].startswith("1px solid "))
+
+    def test_hardware_readings_share_one_normal_gutter_in_every_theme(self):
+        hardware = ("cpu", "custom-cpu", "custom-gpu", "memory")
+        for theme, css in self.styles.items():
+            gutter = {"rain": 10, "praxis": 9, "retro": 11}[theme]
+            for module in ("pulseaudio", "network", "battery"):
+                with self.subTest(theme=theme, unchanged=module):
+                    padding = status_padding(css, module)
+                    self.assertEqual(padding["left"], gutter)
+                    self.assertEqual(padding["right"], gutter)
+            for module in hardware:
+                with self.subTest(theme=theme, module=module):
+                    padding = status_padding(css, module)
+                    self.assertEqual(padding["top"], 0)
+                    self.assertEqual(padding["bottom"], 0)
+                    self.assertGreater(padding["left"], 0)
+                    self.assertGreater(padding["right"], 0)
+                    # Works with either CPU module, GPU disabled, and any order.
+                    for neighbor in hardware:
+                        next_padding = status_padding(css, neighbor)
+                        self.assertEqual(padding["right"] + next_padding["left"], gutter)
+            with self.subTest(theme=theme, unchanged="tray"):
+                tray = status_padding(css, "tray")
+                self.assertEqual(tray["left"], 11 if theme == "retro" else 10)
+                self.assertEqual(tray["right"], 11 if theme == "retro" else 10)
 
     def test_hardware_defaults_are_shared_and_theme_overrides_only_define_appearance(self):
         for theme, config in self.configurations.items():

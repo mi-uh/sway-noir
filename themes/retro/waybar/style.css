@@ -110,6 +110,14 @@ window#waybar.bottom {
     border-right: 1px solid @border;
 }
 
+/* Neighboring hardware readings share one normal status gutter, not two. */
+#cpu,
+#custom-cpu,
+#custom-gpu,
+#memory {
+    padding: 0 5px 0 6px;
+}
+
 #pulseaudio.muted,
 #network.disconnected {
     color: @muted;
