@@ -168,8 +168,31 @@ Other settings use Rain's defaults. For more color and layout settings, see
 Set `bar_position=top` or `bar_position=bottom` in your theme's `theme.conf`
 to choose its default edge. `bar_margin_top` and `bar_margin_bottom` accept
 pixel values from 0 to 99 and swap when a fixed preference moves the bar.
-If your theme provides its own `waybar/config.jsonc`, use these placeholders
-so it respects the position preference:
+
+#### Waybar: shared behavior, theme-specific appearance
+
+[`waybar/base.jsonc`](waybar/base.jsonc) defines module order, actions, intervals,
+workspace behavior, the clock and the position preference. The default
+[`waybar/config.jsonc`](waybar/config.jsonc) contains Rain's appearance overrides;
+Praxis and Retro provide their own small overrides in `themes/ID/waybar/config.jsonc`.
+Colors and widget styling remain in `theme.conf` and `waybar/style.css`.
+
+Waybar's native `include` merges objects recursively: settings in the theme file
+win, and the shared base supplies missing settings. Arrays are replaced, not
+concatenated. The quoted environment-variable reference keeps paths with spaces
+safe and points to the generated base for the current selection:
+
+```jsonc
+{
+  "include": "\"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc\"",
+  "height": 32,
+  "cpu": {"format": "CPU {usage}"}
+}
+```
+
+A personal theme without its own Waybar config still inherits Rain's appearance.
+Existing complete personal configs without `include` remain complete replacements.
+In those files, use these placeholders to respect the position preference:
 
 ```jsonc
 "position": "{{bar_position}}",

@@ -9,29 +9,14 @@ import subprocess
 import tempfile
 import unittest
 
+from waybar_config import load_jsonc, load_waybar_config
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIRECTORIES = (
     "fuzzel", "gammastep", "mako", "session", "sway", "swaylock",
     "systemd", "themes", "waybar", "xdg-desktop-portal",
 )
-
-
-def load_jsonc(text):
-    # Preserve quoted strings (including URLs and escaped quotes) while removing
-    # comments and trailing commas accepted by Waybar's JSONC reader.
-    strings_or_comments = r'"(?:\\.|[^"\\])*"|//[^\r\n]*|/\*[\s\S]*?\*/'
-    text = re.sub(
-        strings_or_comments,
-        lambda match: match[0] if match[0].startswith('"') else " ",
-        text,
-    )
-    text = re.sub(
-        r'"(?:\\.|[^"\\])*"|,\s*(?=[}\]])',
-        lambda match: match[0] if match[0].startswith('"') else "",
-        text,
-    )
-    return json.loads(text)
 
 
 def private_use_characters(text):
@@ -66,7 +51,7 @@ class WaybarTests(unittest.TestCase):
                     capture_output=True, text=True, timeout=10,
                 )
                 config = Path(directory) / "sway-noir/current/waybar/config.jsonc"
-                cls.configurations[theme] = load_jsonc(config.read_text())
+                cls.configurations[theme] = load_waybar_config(config)
         cls.config = cls.configurations["rain"]
 
     def test_no_icon_font_references(self):
@@ -94,6 +79,52 @@ class WaybarTests(unittest.TestCase):
         label = self.config["network"]["format-disconnected"]
         self.assertRegex(label, r"[A-Za-z]{2,}")
         self.assertFalse(private_use_characters(label))
+
+    def test_theme_overrides_do_not_duplicate_shared_behavior(self):
+        for filename in ("waybar/config.jsonc", "themes/praxis/waybar/config.jsonc",
+                         "themes/retro/waybar/config.jsonc"):
+            with self.subTest(path=filename):
+                config = load_jsonc(self.configuration_texts[Path(filename)])
+                self.assertEqual(config["include"], '"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc"')
+                for key in ("layer", "position", "spacing", "reload_style_on_change", "sway/workspaces",
+                            "modules-left", "modules-center", "modules-right", "margin-top", "margin-bottom"):
+                    self.assertNotIn(key, config)
+                for module, keys in {"cpu": ("interval", "tooltip"), "memory": ("interval",),
+                                     "pulseaudio": ("on-click", "scroll-step"), "battery": ("states",),
+                                     "clock": ("format", "tooltip-format")}.items():
+                    for key in keys:
+                        self.assertNotIn(key, config.get(module, {}))
+
+    def test_include_reader_preserves_overrides_and_first_include_wins(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.jsonc"
+            second = root / "second.jsonc"
+            config = root / "config.jsonc"
+            first.write_text(json.dumps({"cpu": {"format": "first", "interval": 3},
+                                         "modules-right": ["cpu"], "height": 30}))
+            second.write_text(json.dumps({"cpu": {"format": "second", "tooltip": False},
+                                          "modules-right": ["clock"], "height": 40}))
+            config.write_text(json.dumps({"include": [str(first), str(second)],
+                                          "cpu": {"format": "custom"}, "height": None}))
+            self.assertEqual(load_waybar_config(config), {
+                "cpu": {"format": "custom", "interval": 3, "tooltip": False},
+                "modules-right": ["cpu"], "height": None,
+            })
+
+    def test_include_reader_preserves_quoted_directory_and_detects_cycles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            theme_dir = Path(directory) / 'spaces $dollar "quotes" $(not-a-command)'
+            bar = theme_dir / "waybar"
+            bar.mkdir(parents=True)
+            config = bar / "config.jsonc"
+            base = bar / "base.jsonc"
+            config.write_text(json.dumps({"include": '"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc"'}))
+            base.write_text('{"height": 34}')
+            self.assertEqual(load_waybar_config(config), {"height": 34})
+            base.write_text(json.dumps({"include": '"${SWAY_NOIR_THEME_DIR}/waybar/config.jsonc"'}))
+            with self.assertRaisesRegex(ValueError, "Recursive Waybar include"):
+                load_waybar_config(config)
 
     def test_font_fallback(self):
         self.assertRegex(

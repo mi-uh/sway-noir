@@ -256,6 +256,7 @@ assert_file "$test_config/sway-noir/start-sway-noir"
 [[ -x "$test_config/sway-noir/session/theme" && -x "$test_config/sway-noir/session/lock-screen" ]] ||
     fail 'theme/lock helpers were not installed executable'
 assert_file "$test_config/sway-noir/themes/rain/theme.conf"
+assert_same "$repo_root/waybar/base.jsonc" "$test_config/sway-noir/waybar/base.jsonc"
 assert_file "$test_config/sway-noir/themes/retro/waybar/style.css"
 for component in theme.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini swaylock/config; do
     assert_same "$repo_root/themes/praxis/$component" "$test_config/sway-noir/themes/praxis/$component"
@@ -267,6 +268,7 @@ done
 install -d "$test_config/sway-noir/themes/personal"
 "$test_config/sway-noir/session/theme" set praxis --no-reload > /dev/null
 [[ "$(< "$test_state/sway-noir/current/theme-id")" == praxis ]] || fail 'installed Praxis theme could not be selected'
+assert_file "$test_state/sway-noir/current/waybar/base.jsonc"
 grep -Fqx "image=$test_config/sway-noir/themes/praxis/lock-screen.png" \
     "$test_state/sway-noir/current/swaylock/config" || fail 'installed Praxis lock image path is incorrect'
 printf 'name=Personal Rain\n' > "$test_config/sway-noir/themes/personal/theme.conf"
