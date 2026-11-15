@@ -1,0 +1,134 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+readonly proc_stat="/proc/stat"
+readonly hwmon_root="/sys/class/hwmon"
+readonly thermal_root="/sys/class/thermal"
+cpu_total=0
+cpu_idle=0
+
+read_cpu_times() {
+    local -a fields=()
+    local index value
+    read -r -a fields 2>/dev/null < "$proc_stat" || return 1
+    [[ "${fields[0]:-}" == cpu && ${#fields[@]} -ge 9 ]] || return 1
+    cpu_total=0
+    for index in {1..8}; do
+        value="${fields[$index]}"
+        [[ "$value" =~ ^[0-9]{1,15}$ ]] || return 1
+        cpu_total=$((cpu_total + 10#$value))
+    done
+    # Guest times are already included in user/nice; do not count them twice.
+    cpu_idle=$((10#${fields[4]} + 10#${fields[5]}))
+}
+
+read_temperature() {
+    local file="$1" raw="" sign=1
+    [[ -f "$file" && -r "$file" ]] || return 1
+    read -r raw 2>/dev/null < "$file" || [[ -n "$raw" ]] || return 1
+    [[ "$raw" =~ ^-?[0-9]{1,6}$ ]] || return 1
+    if [[ "$raw" == -* ]]; then sign=-1; raw="${raw#-}"; fi
+    raw=$((sign * 10#$raw))
+    (( raw >= -50000 && raw <= 200000 )) || return 1
+    printf '%d\n' "$((raw / 1000))"
+}
+
+cpu_temperature() {
+    local directory driver sensor label value rank best_rank=0 best_value=-51
+    for directory in "$hwmon_root"/hwmon*; do
+        [[ -r "$directory/name" ]] || continue
+        read -r driver 2>/dev/null < "$directory/name" || continue
+        case "$driver" in coretemp|k10temp|zenpower|cpu_thermal) ;; *) continue ;; esac
+        for sensor in "$directory"/temp*_input; do
+            rank=0
+            label=""
+            if [[ -r "${sensor%_input}_label" ]]; then
+                read -r label 2>/dev/null < "${sensor%_input}_label" || true
+            fi
+            case "$driver:$label" in
+                coretemp:Package\ id\ *|k10temp:Tdie|zenpower:Tdie) rank=3 ;;
+                k10temp:Tctl|zenpower:Tctl|cpu_thermal:*) rank=2 ;;
+                coretemp:Core\ *) rank=1 ;;
+            esac
+            (( rank > 0 )) || continue
+            value="$(read_temperature "$sensor")" || continue
+            if (( rank > best_rank || (rank == best_rank && value > best_value) )); then
+                best_rank="$rank"
+                best_value="$value"
+            fi
+        done
+    done
+    if (( best_rank > 0 )); then printf '%d\n' "$best_value"; return; fi
+    # Some kernels expose the CPU package only as a thermal zone.
+    for directory in "$thermal_root"/thermal_zone*; do
+        [[ -r "$directory/type" ]] || continue
+        read -r driver 2>/dev/null < "$directory/type" || continue
+        case "$driver" in x86_pkg_temp|cpu-thermal|cpu_thermal) ;; *) continue ;; esac
+        value="$(read_temperature "$directory/temp")" || continue
+        if (( best_rank == 0 || value > best_value )); then
+            best_rank=1
+            best_value="$value"
+        fi
+    done
+    (( best_rank > 0 )) || return 1
+    printf '%d\n' "$best_value"
+}
+
+cpu_status() {
+    local previous_total previous_idle total idle usage temperature
+    read_cpu_times || return 0
+    previous_total="$cpu_total"
+    previous_idle="$cpu_idle"
+    # A short, stateless sample avoids per-user cache files and stale baselines.
+    sleep 0.2
+    read_cpu_times || return 0
+    total=$((cpu_total - previous_total))
+    idle=$((cpu_idle - previous_idle))
+    (( total > 0 && idle >= 0 && idle <= total )) || return 0
+    usage=$(((100 * (total - idle) + total / 2) / total))
+    printf '%d' "$usage"
+    if [[ -n "${1:-}" ]]; then
+        temperature="$(read_temperature "$1")" || temperature=""
+    else
+        temperature="$(cpu_temperature)" || temperature=""
+    fi
+    [[ -z "$temperature" ]] || printf ' · %s' "$temperature"
+    printf '\n'
+}
+
+gpu_status() {
+    local index="$1" reply usage temperature
+    command -v nvidia-smi >/dev/null 2>&1 || return 0
+    reply="$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu \
+        --format=csv,noheader,nounits -i "$index" 2>/dev/null)" || return 0
+    # Only one selected GPU and validated numeric data may reach Waybar markup.
+    [[ "$reply" != *$'\n'* && "$reply" == *,* ]] || return 0
+    usage="${reply%%,*}"
+    temperature="${reply#*,}"
+    [[ "$usage" =~ ^[[:blank:]]*([0-9]{1,3})[[:blank:]]*$ ]] || return 0
+    usage=$((10#${BASH_REMATCH[1]}))
+    (( usage <= 100 )) || return 0
+    printf '%d' "$usage"
+    if [[ "$temperature" =~ ^[[:blank:]]*([0-9]{1,3})[[:blank:]]*$ ]]; then
+        temperature=$((10#${BASH_REMATCH[1]}))
+        if (( temperature <= 200 )); then printf ' · %d' "$temperature"; fi
+    fi
+    printf '\n'
+}
+
+case "${1:-}" in
+    cpu)
+        (( $# == 1 || $# == 2 )) &&
+            [[ -z "${2:-}" || "$2" == /* ]] || exit 2
+        cpu_status "${2:-}"
+        ;;
+    gpu)
+        (( $# == 1 || $# == 2 )) &&
+            [[ "${2:-0}" =~ ^[0-9]{1,4}$ ]] || exit 2
+        gpu_status "${2:-0}"
+        ;;
+    *)
+        printf 'Usage: %s cpu [SENSOR_FILE] | gpu [INDEX]\n' "$0" >&2
+        exit 2
+        ;;
+esac

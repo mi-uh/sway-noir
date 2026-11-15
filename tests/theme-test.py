@@ -289,7 +289,7 @@ class Themes(unittest.TestCase):
         for theme in BUNDLED_THEMES:
             self.run_theme("set", theme, "--no-reload")
             config = load_waybar_config(self.current / "waybar/config.jsonc")
-            for module in ("cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
+            for module in ("cpu", "custom/cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
                 for key, value in config[module].items():
                     if key == "format" or key.startswith("format-"):
                         with self.subTest(theme=theme, module=module, key=key):
@@ -375,11 +375,10 @@ class Themes(unittest.TestCase):
                 self.run_theme("init")
                 config = load_waybar_config(self.current / "waybar/config.jsonc")
                 gpu = config["custom/gpu"]
-                expected = (config["cpu"]["format"].replace("CPU", "GPU")
-                            .replace("{usage:02}", "{:0>2}").replace("{usage}", "{}"))
+                expected = config["custom/cpu"]["format"].replace("CPU", "GPU")
                 self.assertEqual(gpu["format"], expected)
-                self.assertEqual(gpu.get("align"), config["cpu"].get("align"))
-                self.assertEqual(gpu.get("justify"), config["cpu"].get("justify"))
+                self.assertEqual(gpu.get("align"), config["custom/cpu"].get("align"))
+                self.assertEqual(gpu.get("justify"), config["custom/cpu"].get("justify"))
                 self.assertEqual(gpu["exec"], "printf 7")
                 self.assertEqual(gpu["interval"], 3)
                 self.assertFalse(gpu["tooltip"])
@@ -398,6 +397,34 @@ class Themes(unittest.TestCase):
                     self.assertEqual(composite[1].text, "12 · 54")
                 self.assert_complete()
         self.assertFalse(self.log.exists())
+
+    def test_temperature_modules_are_opt_in_and_removing_local_list_restores_defaults(self):
+        local = self.profile / "waybar/local.jsonc"
+        for theme in BUNDLED_THEMES:
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                default = load_waybar_config(self.current / "waybar/config.jsonc")
+                self.assertIn("cpu", default["modules-right"])
+                self.assertNotIn("custom/cpu", default["modules-right"])
+                self.assertNotIn("custom/gpu", default["modules-right"])
+                # Exercise the exact opt-in list shipped in the commented example.
+                example = (self.profile / "waybar/local.jsonc.example").read_text()
+                setting = next(line.strip().removeprefix("// ") for line in example.splitlines()
+                               if line.strip().startswith('// "modules-right":'))
+                local.write_text("{" + setting + "}")
+                self.run_theme("init")
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
+                self.assertIn("custom/cpu", config["modules-right"])
+                self.assertIn("custom/gpu", config["modules-right"])
+                self.assertNotIn("cpu", config["modules-right"])
+                self.assertEqual(config["custom/cpu"]["exec"],
+                                 '"$SWAY_NOIR_DIR/session/hardware-status" cpu')
+                self.assertEqual(config["custom/gpu"]["exec"],
+                                 '"$SWAY_NOIR_DIR/session/hardware-status" gpu')
+                local.unlink()
+                self.run_theme("init")
+                self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc"), default)
+                self.assert_complete()
 
     def test_local_waybar_snapshot_survives_failed_reload(self):
         local = self.profile / "waybar/local.jsonc"
@@ -576,7 +603,7 @@ class Themes(unittest.TestCase):
         self.assertEqual(config["sway/workspaces"]["format"], "{name}")
         self.assertEqual(config["sway/window"].get("rotate", 0), 0)
         self.assertEqual(config["sway/window"]["max-length"], 32)
-        for module in ("cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
+        for module in ("cpu", "custom/cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
             self.assertEqual(config[module]["align"], 0.5)
             self.assertEqual(config[module]["justify"], "center")
             for key, value in config[module].items():

@@ -253,6 +253,7 @@ ln -s "$personal_config" "$test_config/sway-noir/sway/config.d/99-local.conf"
 assert_file "$test_config/sway-noir/start-sway-noir"
 [[ ! -e "$test_config/sway-noir/session/installer" ]] || fail 'installer-only modules leaked into the desktop profile'
 [[ -x "$test_config/sway-noir/session/screenshot" ]] || fail 'screenshot helper was not installed executable'
+[[ -x "$test_config/sway-noir/session/hardware-status" ]] || fail 'hardware status helper was not installed executable'
 [[ -x "$test_config/sway-noir/session/theme" && -x "$test_config/sway-noir/session/lock-screen" ]] ||
     fail 'theme/lock helpers were not installed executable'
 assert_file "$test_config/sway-noir/themes/rain/theme.conf"
@@ -285,7 +286,7 @@ assert_same "$repo_root/mako/config" "$test_config/sway-noir/mako/config"
 
 # Equal contents must not hide damaged executable or configuration permissions.
 profile_executables=(start-sway-noir session/start-session session/run-apps session/screenshot
-    session/optional-command session/polkit-agent session/theme session/lock-screen)
+    session/optional-command session/hardware-status session/polkit-agent session/theme session/lock-screen)
 for relative_path in "${profile_executables[@]}"; do
     chmod 644 "$test_config/sway-noir/$relative_path"
 done

@@ -80,13 +80,16 @@ class WaybarTests(unittest.TestCase):
         self.assertRegex(label, r"[A-Za-z]{2,}")
         self.assertFalse(private_use_characters(label))
 
-    def test_gpu_presets_only_define_appearance_and_do_not_enable_the_module(self):
+    def test_hardware_defaults_are_shared_and_theme_overrides_only_define_appearance(self):
         for theme, config in self.configurations.items():
             with self.subTest(theme=theme):
-                self.assertEqual(set(config["custom/gpu"]),
-                                 {"format", "align", "justify"} if theme == "praxis" else {"format"})
-                for position in ("left", "center", "right"):
-                    self.assertNotIn("custom/gpu", config[f"modules-{position}"])
+                for module, command in (("custom/cpu", "cpu"), ("custom/gpu", "gpu")):
+                    self.assertEqual(config[module]["exec"],
+                                     f'"$SWAY_NOIR_DIR/session/hardware-status" {command}')
+                    self.assertEqual(config[module]["interval"], 3)
+                    self.assertFalse(config[module]["tooltip"])
+                    for position in ("left", "center", "right"):
+                        self.assertNotIn(module, config[f"modules-{position}"])
         # Copying the example must not pin GPU appearance against the theme.
         example = self.configuration_texts[Path("waybar/local.jsonc.example")]
         for key in ("format", "align", "justify"):
@@ -102,6 +105,8 @@ class WaybarTests(unittest.TestCase):
                             "modules-left", "modules-center", "modules-right", "margin-top", "margin-bottom"):
                     self.assertNotIn(key, config)
                 for module, keys in {"cpu": ("interval", "tooltip"), "memory": ("interval",),
+                                     "custom/cpu": ("exec", "interval", "tooltip"),
+                                     "custom/gpu": ("exec", "interval", "tooltip"),
                                      "pulseaudio": ("on-click", "scroll-step"), "battery": ("states",),
                                      "clock": ("format", "tooltip-format")}.items():
                     for key in keys:

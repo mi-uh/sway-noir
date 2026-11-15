@@ -168,12 +168,31 @@ Transfer existing personal edits from `base.jsonc` yourself; they are not migrat
 automatically.
 
 New right-hand status modules receive the theme's padding, colors and borders.
-`custom/gpu` also has matching text formats in all bundled themes, including
-Praxis's small label and bold value. Leave `format`, `align` and `justify` unset
-locally to inherit them; remove these keys if copied from an older example.
-The [example](waybar/local.jsonc.example) includes an optional NVIDIA GPU module;
-its command requires the driver's `nvidia-smi`. Other GPUs need a suitable command.
-Other custom modules need their own text format.
+Both hardware modules also have matching text formats in all bundled themes.
+Leave `format`, `align` and `justify` unset locally to inherit them.
+
+#### Optional CPU and NVIDIA GPU temperatures
+
+**Off by default:** the standard bar keeps native `cpu` utilization only and does
+not enable GPU readings. To show **CPU 12 · 54** and **GPU 28 · 61**, without
+units, add this list to `local.jsonc` (or uncomment it in the
+[example](waybar/local.jsonc.example)):
+
+```jsonc
+"modules-right": ["pulseaudio", "network", "battery", "custom/cpu", "custom/gpu", "memory", "tray", "clock"]
+```
+
+CPU temperatures use Intel/AMD kernel sensors, with CPU thermal zones as a
+fallback. Missing temperatures leave utilization visible. NVIDIA GPU readings
+require the driver's `nvidia-smi`; unavailable GPUs are hidden. On Fedora, obtain
+it from your chosen NVIDIA driver provider, not the base repositories. No sensor
+packages are required. Remove an old local GPU `exec` to use the built-in combined
+reading.
+For another GPU, override `exec` with
+`"\"$SWAY_NOIR_DIR/session/hardware-status\" gpu 1"`.
+
+To disable temperatures again, replace `custom/cpu` with `cpu` and remove
+`custom/gpu`, or remove the local module list to restore all defaults.
 
 Inside Sway Noir, reselect the current theme with **Super+Shift+t** to apply
 changes, or log out and back in. Do not edit generated files under
