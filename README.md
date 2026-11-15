@@ -97,6 +97,15 @@ Select **Sway Noir** on your login screen, or start it from a text console:
 Press **Super+Shift+t** and select a theme. Your applications stay open.
 If switching fails, an error is shown and the previous theme is kept.
 
+The same menu has a **Waybar position** entry:
+
+- **Theme default:** Rain places the bar at the top; Praxis and Retro at the bottom.
+- **Always top** / **Always bottom:** keep the bar at that edge, regardless of theme.
+
+The selected option is marked in the position submenu. Escape cancels without
+changing anything. Your choice survives theme changes and logging out/in.
+Vertical margins follow the bar when its position changes.
+
 Inside Sway Noir, you can also use these terminal commands:
 
 ```bash
@@ -106,9 +115,17 @@ Inside Sway Noir, you can also use these terminal commands:
 ~/.config/sway-noir/session/theme current
 # Switch to Praxis
 ~/.config/sway-noir/session/theme set praxis
+# Show the saved Waybar preference (default, top or bottom)
+~/.config/sway-noir/session/theme bar-position
+# Always place Waybar at the top
+~/.config/sway-noir/session/theme bar-position top
+# Restore each theme's default position
+~/.config/sway-noir/session/theme bar-position default
 ```
 
 Replace `praxis` with `rain`, `retro` or the name of your own theme.
+Use `bar-position bottom` to pin the bar to the bottom. Add `--no-reload` to
+`set ID` or `bar-position VALUE` to save a choice outside Sway Noir for the next login.
 
 ## Customize
 
@@ -147,6 +164,18 @@ accent_surface=#1d2936
 Choose your own name and colors, then select **My Theme** from the theme menu.
 Other settings use Rain's defaults. For more color and layout settings, see
 [themes/rain/theme.conf](themes/rain/theme.conf).
+
+Set `bar_position=top` or `bar_position=bottom` in your theme's `theme.conf`
+to choose its default edge. `bar_margin_top` and `bar_margin_bottom` accept
+pixel values from 0 to 99 and swap when a fixed preference moves the bar.
+If your theme provides its own `waybar/config.jsonc`, use these placeholders
+so it respects the position preference:
+
+```jsonc
+"position": "{{bar_position}}",
+"margin-top": {{bar_margin_top}},
+"margin-bottom": {{bar_margin_bottom}},
+```
 
 ## Update
 
