@@ -102,6 +102,14 @@ window#waybar.bottom {
     padding: 0 9px;
 }
 
+/* Neighboring hardware readings share one normal status gutter, not two. */
+#cpu,
+#custom-cpu,
+#custom-gpu,
+#memory {
+    padding: 0 4px 0 5px;
+}
+
 /* Separators mark functional groups, rather than boxing every reading. */
 #pulseaudio,
 #network,
