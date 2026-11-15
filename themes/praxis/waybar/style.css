@@ -23,7 +23,17 @@
 window#waybar {
     color: @text;
     background: alpha(@bg, 0.98);
+}
+
+/* Keep the divider facing the desktop, regardless of the selected edge. */
+window#waybar.top {
+    border-top: none;
+    border-bottom: 1px solid alpha(@accent, 0.32);
+}
+
+window#waybar.bottom {
     border-top: 1px solid alpha(@accent, 0.32);
+    border-bottom: none;
 }
 
 #workspaces {

@@ -117,6 +117,7 @@ it is not a complete implementation of Waybar's path expansion.
 | Switch Rain ↔ Retro ↔ Praxis on all outputs | Correct appearance; windows stay open |
 | Theme menu → Waybar position → Theme default; switch themes | Rain at top; Retro/Praxis at bottom |
 | Select Always top, then Always bottom; switch all themes each time | Bar stays at the selected edge on all outputs; Rain's 8 px gap follows it |
+| Move Praxis/Retro between top and bottom | Divider faces the desktop: below a top bar, above a bottom bar; color and thickness unchanged |
 | Cancel the position submenu with Escape | Theme and position unchanged |
 | Log out/in with a fixed position, then restore Theme default | Position persists; reset restores the current theme's original layout |
 | Open launcher, send notification, lock | Matching theme |
