@@ -80,6 +80,8 @@ window#waybar.bottom {
     font-weight: bold;
 }
 
+/* Include new right-hand status modules, without styling their nested widgets. */
+.modules-right > widget > *,
 #mode,
 #tray,
 #pulseaudio,

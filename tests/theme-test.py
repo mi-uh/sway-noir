@@ -289,7 +289,7 @@ class Themes(unittest.TestCase):
         for theme in BUNDLED_THEMES:
             self.run_theme("set", theme, "--no-reload")
             config = load_waybar_config(self.current / "waybar/config.jsonc")
-            for module in ("cpu", "memory", "network", "pulseaudio", "battery"):
+            for module in ("cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
                 for key, value in config[module].items():
                     if key == "format" or key.startswith("format-"):
                         with self.subTest(theme=theme, module=module, key=key):
@@ -331,6 +331,134 @@ class Themes(unittest.TestCase):
                 self.assertEqual("tooltip-format" in config["memory"], theme != "retro")
                 self.assertEqual(config["tray"]["spacing"], 6 if theme == "praxis" else 8)
                 self.assertEqual("icon-size" in config["tray"], theme == "praxis")
+
+    def test_local_waybar_overrides_win_and_keep_theme_and_base_defaults(self):
+        local = self.profile / "waybar/local.jsonc"
+        original = '''{
+            // Personal settings use native JSONC, including trailing commas.
+            "modules-right": ["cpu", "custom/gpu", "memory", "clock"],
+            "cpu": {"interval": 11, "format": "LOAD {usage}"},
+            "custom/gpu": {
+                "exec": "printf 42",
+                "interval": 3,
+                "format": "<span foreground=\\"{{muted}}\\">GPU</span> {}",
+            },
+        }'''
+        local.write_text(original)
+        for theme in BUNDLED_THEMES:
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                self.run_theme("init")
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
+                self.assertEqual(config["modules-right"], ["cpu", "custom/gpu", "memory", "clock"])
+                self.assertEqual(config["cpu"]["interval"], 11)
+                self.assertEqual(config["cpu"]["format"], "LOAD {usage}")
+                self.assertFalse(config["cpu"]["tooltip"])
+                self.assertEqual(config["memory"]["interval"], 5)
+                self.assertEqual(config["height"], {"rain": 34, "praxis": 36, "retro": 32}[theme])
+                self.assertEqual(config["position"], "top" if theme == "rain" else "bottom")
+                self.assertIn('foreground="#', config["custom/gpu"]["format"])
+                self.assertEqual(local.read_text(), original)
+                self.assert_complete()
+        self.assertFalse(self.log.exists())
+
+    def test_local_gpu_inherits_cpu_text_style_when_switching_themes(self):
+        local = self.profile / "waybar/local.jsonc"
+        original = json.dumps({
+            "modules-right": ["cpu", "memory", "custom/gpu", "clock"],
+            "custom/gpu": {"exec": "printf 7", "interval": 3, "tooltip": False},
+        })
+        local.write_text(original)
+        for theme in (*BUNDLED_THEMES, "praxis", "rain"):
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                self.run_theme("init")
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
+                gpu = config["custom/gpu"]
+                expected = (config["cpu"]["format"].replace("CPU", "GPU")
+                            .replace("{usage:02}", "{:0>2}").replace("{usage}", "{}"))
+                self.assertEqual(gpu["format"], expected)
+                self.assertEqual(gpu.get("align"), config["cpu"].get("align"))
+                self.assertEqual(gpu.get("justify"), config["cpu"].get("justify"))
+                self.assertEqual(gpu["exec"], "printf 7")
+                self.assertEqual(gpu["interval"], 3)
+                self.assertFalse(gpu["tooltip"])
+                self.assertEqual(local.read_text(), original)
+                if theme == "praxis":
+                    # Custom command output is text, so pad a string, not an int.
+                    labels = ET.fromstring(f'<root>{gpu["format"].format("7")}</root>').findall("span")
+                    self.assertEqual(labels[0].text, "GPU")
+                    self.assertEqual(labels[0].get("size"), "small")
+                    self.assertEqual(labels[0].get("foreground"), "#a39b89")
+                    self.assertEqual(labels[1].text, "07")
+                    self.assertEqual(labels[1].get("weight"), "semibold")
+                    composite = ET.fromstring(
+                        f'<root>{gpu["format"].format("12 · 54")}</root>'
+                    ).findall("span")
+                    self.assertEqual(composite[1].text, "12 · 54")
+                self.assert_complete()
+        self.assertFalse(self.log.exists())
+
+    def test_local_waybar_snapshot_survives_failed_reload(self):
+        local = self.profile / "waybar/local.jsonc"
+        local.write_text('{"cpu": {"interval": 11}}')
+        self.run_theme("init")
+        original = self.current.resolve()
+        local.write_text('{"cpu": {"interval": 12}}')
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["cpu"]["interval"], 11)
+        self.run_theme("set", "praxis", success=False, FAIL_RELOAD="1")
+        self.assertEqual(self.current.resolve(), original)
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["cpu"]["interval"], 11)
+        self.assert_complete()
+        self.run_theme("set", "praxis")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["cpu"]["interval"], 12)
+        self.assert_complete()
+
+    def test_empty_and_removed_local_waybar_settings_restore_defaults(self):
+        self.run_theme("init")
+        original = load_waybar_config(self.current / "waybar/config.jsonc")
+        local = self.profile / "waybar/local.jsonc"
+        shutil.copyfile(self.profile / "waybar/local.jsonc.example", local)
+        self.run_theme("init")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc"), original)
+        local.write_text('{"modules-right": []}')
+        self.run_theme("init")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["modules-right"], [])
+        local.unlink()
+        self.run_theme("init")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc"), original)
+        self.assertFalse((self.current / "waybar/local.jsonc").exists())
+        self.assertFalse((self.current / "waybar/theme.jsonc").exists())
+        self.assert_complete()
+
+    def test_local_waybar_symlink_is_read_without_modifying_its_target(self):
+        target = self.directory / "personal settings.jsonc"
+        marker = self.directory / "should-not-exist"
+        text = json.dumps({"cpu": {"interval": 11},
+                           "custom/gpu": {"exec": f'$(touch "{marker}")'}})
+        target.write_text(text)
+        local = self.profile / "waybar/local.jsonc"
+        local.symlink_to(target)
+        self.run_theme("init")
+        self.assertTrue(local.is_symlink())
+        self.assertEqual(target.read_text(), text)
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["cpu"]["interval"], 11)
+        self.assertFalse((self.current / "waybar/local.jsonc").is_symlink())
+        self.assertFalse(marker.exists())
+        self.assert_complete()
+
+    def test_invalid_local_waybar_path_leaves_current_generation_unchanged(self):
+        self.run_theme("init")
+        original = self.current.resolve()
+        local = self.profile / "waybar/local.jsonc"
+        local.mkdir()
+        self.run_theme("init", success=False)
+        self.assertEqual(self.current.resolve(), original)
+        local.rmdir()
+        local.symlink_to(self.directory / "missing.jsonc")
+        self.run_theme("init", success=False)
+        self.assertEqual(self.current.resolve(), original)
+        self.assert_complete()
 
     def test_personal_full_waybar_config_remains_a_complete_replacement(self):
         theme = self.profile / "themes/personal"
@@ -448,7 +576,7 @@ class Themes(unittest.TestCase):
         self.assertEqual(config["sway/workspaces"]["format"], "{name}")
         self.assertEqual(config["sway/window"].get("rotate", 0), 0)
         self.assertEqual(config["sway/window"]["max-length"], 32)
-        for module in ("cpu", "memory", "network", "pulseaudio", "battery"):
+        for module in ("cpu", "memory", "network", "pulseaudio", "battery", "custom/gpu"):
             self.assertEqual(config[module]["align"], 0.5)
             self.assertEqual(config[module]["justify"], "center")
             for key, value in config[module].items():

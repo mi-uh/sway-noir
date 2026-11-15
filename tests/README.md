@@ -109,7 +109,10 @@ python3 tests/theme-test.py
 Waybar checks resolve native includes with first-defined-wins recursive object
 merging (arrays are not concatenated). They verify that changes to shared
 behavior reach every theme, theme overrides stay isolated, and full and partial
-personal configurations remain supported. The helper in `tests/waybar_config.py`
+personal configurations remain supported. Local overrides take precedence,
+survive updates/uninstall and stay with their generation on rollback. Static CSS
+checks cover shared styling for new right-hand modules; GPU text formats follow
+CPU styling across theme switches unless locally overridden. The helper in `tests/waybar_config.py`
 handles the literal/quoted include paths used here without executing shell code;
 it is not a complete implementation of Waybar's path expansion.
 
@@ -124,6 +127,7 @@ it is not a complete implementation of Waybar's path expansion.
 | Select Always top, then Always bottom; switch all themes each time | Bar stays at the selected edge on all outputs; Rain's 8 px gap follows it |
 | Move Praxis/Retro between top and bottom | Divider faces the desktop: below a top bar, above a bottom bar; color and thickness unchanged |
 | Cancel the position submenu with Escape | Theme and position unchanged |
+| Add `custom/gpu` between memory and tray in `waybar/local.jsonc`, without local format/alignment overrides; reselect each theme | GPU text and padding/background/borders match CPU/MEM, including Praxis's small label and bold value; no extra styling on tray icons |
 | Log out/in with a fixed position, then restore Theme default | Position persists; reset restores the current theme's original layout |
 | Open launcher, send notification, lock | Matching theme |
 | Test audio keys and authentication prompts | Controls work; no duplicate agent |

@@ -29,6 +29,7 @@
     "format": "RAM {percentage}",
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
   },
+  "custom/gpu": {"format": "GPU {}"},
   "battery": {
     "format": "BAT {capacity}",
     "format-charging": "BAT {capacity}+",

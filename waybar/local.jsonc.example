@@ -1,0 +1,14 @@
+{
+  // Copy to local.jsonc in this directory; updates never replace that file.
+  // Add only your overrides. Objects merge; module arrays replace the full list.
+  // "cpu": {"interval": 2},
+
+  // Example NVIDIA GPU module (requires nvidia-smi; not installed by Sway Noir):
+  // Omit format/alignment so GPU text follows the selected theme.
+  // "modules-right": ["pulseaudio", "network", "battery", "cpu", "memory", "custom/gpu", "tray", "clock"],
+  // "custom/gpu": {
+  //   "exec": "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits -i 0",
+  //   "interval": 3,
+  //   "tooltip": false
+  // }
+}

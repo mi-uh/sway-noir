@@ -150,6 +150,35 @@ startup programs or the audio-settings command, log out and back in.
 
 Screenshots are saved to `~/Pictures/Screenshots` by default.
 
+### Personal Waybar settings
+
+Keep overrides in `~/.config/sway-noir/waybar/local.jsonc`, **not** in the managed
+`base.jsonc`. Create it once after updating:
+
+```bash
+cd ~/.config/sway-noir/waybar
+cp -n local.jsonc.example local.jsonc
+```
+
+Edit only the settings you want to change. Local values win over theme and base
+settings; missing values still receive updates. Objects merge recursively, but
+`modules-left`, `modules-center` and `modules-right` replace the entire list.
+Updates and uninstall leave `local.jsonc` untouched.
+Transfer existing personal edits from `base.jsonc` yourself; they are not migrated
+automatically.
+
+New right-hand status modules receive the theme's padding, colors and borders.
+`custom/gpu` also has matching text formats in all bundled themes, including
+Praxis's small label and bold value. Leave `format`, `align` and `justify` unset
+locally to inherit them; remove these keys if copied from an older example.
+The [example](waybar/local.jsonc.example) includes an optional NVIDIA GPU module;
+its command requires the driver's `nvidia-smi`. Other GPUs need a suitable command.
+Other custom modules need their own text format.
+
+Inside Sway Noir, reselect the current theme with **Super+Shift+t** to apply
+changes, or log out and back in. Do not edit generated files under
+`~/.local/state/sway-noir/current/`.
+
 ### Personal themes
 
 To create a color variation of Rain, create the folder
