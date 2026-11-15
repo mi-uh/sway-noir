@@ -103,8 +103,14 @@ window#waybar.bottom {
 }
 
 /* Separators mark functional groups, rather than boxing every reading. */
+#pulseaudio,
 #network,
-#battery,
+#battery {
+    border-right: 1px solid @border;
+    margin: 9px 0;
+}
+
+/* CPU/GPU/memory stay in one block, ending at the tray's left separator. */
 #tray,
 #clock {
     border-left: 1px solid @border;

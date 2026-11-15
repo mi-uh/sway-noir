@@ -74,16 +74,16 @@ class HardwareTests(unittest.TestCase):
             (directory / f"temp{number}_label").write_text(label + "\n")
         return path
 
-    def test_intel_package_temperature_without_units(self):
+    def test_intel_package_temperature_has_degree_sign_only(self):
         self.sensor("hwmon3", "coretemp", 1, 54000, "Package id 0")
         self.sensor("hwmon3", "coretemp", 2, 61000, "Core 0")
         self.sensor("hwmon0", "nvme", 1, 99000, "Composite")
-        self.assertEqual(self.run_status("cpu"), "12 · 54\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 54°\n")
 
     def test_hottest_cpu_package_is_selected_across_sockets(self):
         self.sensor("hwmon2", "coretemp", 1, 51000, "Package id 0")
         self.sensor("hwmon7", "coretemp", 1, 56000, "Package id 1")
-        self.assertEqual(self.run_status("cpu"), "12 · 56\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 56°\n")
 
     def test_amd_die_is_preferred_over_control_temperature(self):
         for driver in ("k10temp", "zenpower"):
@@ -91,17 +91,17 @@ class HardwareTests(unittest.TestCase):
                 self.proc.write_text(BEFORE)
                 self.sensor("hwmon2", driver, 1, 74000, "Tctl")
                 self.sensor("hwmon2", driver, 2, 54000, "Tdie")
-                self.assertEqual(self.run_status("cpu"), "12 · 54\n")
+                self.assertEqual(self.run_status("cpu"), "12 · 54°\n")
 
     def test_invalid_die_reading_falls_back_to_control_temperature(self):
         self.sensor("hwmon0", "k10temp", 1, 64000, "Tctl")
         self.sensor("hwmon0", "k10temp", 2, 999999, "Tdie")
-        self.assertEqual(self.run_status("cpu"), "12 · 64\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 64°\n")
 
     def test_core_temperature_is_used_if_package_reading_is_missing(self):
         self.sensor("hwmon0", "coretemp", 2, 53000, "Core 0")
         self.sensor("hwmon0", "coretemp", 3, 57000, "Core 1")
-        self.assertEqual(self.run_status("cpu"), "12 · 57\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 57°\n")
 
     def test_cpu_thermal_zone_fallback_ignores_other_devices(self):
         for number, kind, temperature in ((0, "acpitz", 91000),
@@ -111,12 +111,12 @@ class HardwareTests(unittest.TestCase):
             (zone / "type").write_text(kind + "\n")
             (zone / "temp").write_text(str(temperature) + "\n")
         self.sensor("hwmon1", "amdgpu", 1, 80000)
-        self.assertEqual(self.run_status("cpu"), "12 · 54\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 54°\n")
 
     def test_cpu_temperature_can_be_explicitly_selected(self):
         selected = self.sensor("hwmon0", "custom-driver", 2, 59000)
         self.sensor("hwmon1", "coretemp", 1, 54000, "Package id 0")
-        self.assertEqual(self.run_status("cpu", str(selected)), "12 · 59\n")
+        self.assertEqual(self.run_status("cpu", str(selected)), "12 · 59°\n")
 
     def test_missing_invalid_and_disappearing_sensors_keep_usage(self):
         sensor = self.sensor("hwmon0", "coretemp", 1, 54000, "Package id 0")
@@ -133,7 +133,7 @@ class HardwareTests(unittest.TestCase):
 
     def test_zero_temperature_is_not_treated_as_missing(self):
         self.sensor("hwmon0", "coretemp", 1, 0, "Package id 0")
-        self.assertEqual(self.run_status("cpu"), "12 · 0\n")
+        self.assertEqual(self.run_status("cpu"), "12 · 0°\n")
 
     def test_iowait_and_guest_counters_are_not_counted_as_extra_cpu_work(self):
         self.assertEqual(self.run_status(
@@ -158,9 +158,9 @@ class HardwareTests(unittest.TestCase):
         self.proc.unlink()
         self.assertEqual(self.run_status("cpu"), "")
 
-    def test_nvidia_utilization_and_temperature_without_units(self):
+    def test_nvidia_utilization_and_temperature_has_degree_sign_only(self):
         self.nvidia()
-        self.assertEqual(self.run_status("gpu"), "28 · 61\n")
+        self.assertEqual(self.run_status("gpu"), "28 · 61°\n")
         self.assertEqual(self.nvidia_log.read_text().splitlines(), [
             "--query-gpu=utilization.gpu,temperature.gpu",
             "--format=csv,noheader,nounits", "-i", "0",
@@ -168,7 +168,7 @@ class HardwareTests(unittest.TestCase):
 
     def test_nvidia_index_and_whitespace(self):
         self.nvidia()
-        self.assertEqual(self.run_status("gpu", "1", NVIDIA_REPLY=" 7 ,  54 \n"), "7 · 54\n")
+        self.assertEqual(self.run_status("gpu", "1", NVIDIA_REPLY=" 7 ,  54 \n"), "7 · 54°\n")
         self.assertEqual(self.nvidia_log.read_text().splitlines()[-1], "1")
 
     def test_missing_nvidia_temperature_keeps_utilization(self):

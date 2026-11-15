@@ -92,7 +92,7 @@ cpu_status() {
     else
         temperature="$(cpu_temperature)" || temperature=""
     fi
-    [[ -z "$temperature" ]] || printf ' · %s' "$temperature"
+    [[ -z "$temperature" ]] || printf ' · %s°' "$temperature"
     printf '\n'
 }
 
@@ -111,7 +111,7 @@ gpu_status() {
     printf '%d' "$usage"
     if [[ "$temperature" =~ ^[[:blank:]]*([0-9]{1,3})[[:blank:]]*$ ]]; then
         temperature=$((10#${BASH_REMATCH[1]}))
-        if (( temperature <= 200 )); then printf ' · %d' "$temperature"; fi
+        if (( temperature <= 200 )); then printf ' · %d°' "$temperature"; fi
     fi
     printf '\n'
 }

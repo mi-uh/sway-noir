@@ -392,9 +392,9 @@ class Themes(unittest.TestCase):
                     self.assertEqual(labels[1].text, "07")
                     self.assertEqual(labels[1].get("weight"), "semibold")
                     composite = ET.fromstring(
-                        f'<root>{gpu["format"].format("12 · 54")}</root>'
+                        f'<root>{gpu["format"].format("12 · 54°")}</root>'
                     ).findall("span")
-                    self.assertEqual(composite[1].text, "12 · 54")
+                    self.assertEqual(composite[1].text, "12 · 54°")
                 self.assert_complete()
         self.assertFalse(self.log.exists())
 

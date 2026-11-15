@@ -15,8 +15,8 @@
     "format-muted": "VOL muted"
   },
   "network": {
-    "format-wifi": "WIFI {signalStrength}",
-    "format-ethernet": "ETH",
+    "format-wifi": "NET {signalStrength}",
+    "format-ethernet": "NET",
     "format-disconnected": "NET down",
     "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
     "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
@@ -27,14 +27,14 @@
   },
   "custom/cpu": {"format": "CPU {}"},
   "memory": {
-    "format": "RAM {percentage}",
+    "format": "MEM {percentage}",
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
   },
   "custom/gpu": {"format": "GPU {}"},
   "battery": {
-    "format": "BAT {capacity}",
-    "format-charging": "BAT {capacity}+",
-    "format-plugged": "BAT {capacity}+",
-    "format-full": "BAT full"
+    "format": "PWR {capacity}",
+    "format-charging": "PWR {capacity}+",
+    "format-plugged": "PWR {capacity}+",
+    "format-full": "PWR full"
   }
 }

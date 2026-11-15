@@ -94,6 +94,22 @@ window#waybar.bottom {
     border-left: 1px solid @border;
 }
 
+/* Separate VOL/NET/PWR at their right edge; keep CPU/GPU/memory together. */
+#network,
+#battery,
+#cpu,
+#custom-cpu,
+#custom-gpu,
+#memory {
+    border-left: none;
+}
+
+#pulseaudio,
+#network,
+#battery {
+    border-right: 1px solid @border;
+}
+
 #pulseaudio.muted,
 #network.disconnected {
     color: @muted;
