@@ -361,6 +361,25 @@ class Themes(unittest.TestCase):
         self.assertIn("on-click", config["pulseaudio"])
         self.assert_complete()
 
+    def test_praxis_and_retro_dividers_follow_bar_position(self):
+        for theme, stroke in (("praxis", "1px solid alpha(@accent, 0.32)"),
+                              ("retro", "1px solid @border")):
+            self.run_theme("set", theme, "--no-reload")
+            for preference in ("default", "top", "bottom"):
+                with self.subTest(theme=theme, preference=preference):
+                    self.run_theme("bar-position", preference, "--no-reload")
+                    config = load_waybar_config(self.current / "waybar/config.jsonc")
+                    position = "bottom" if preference == "default" else preference
+                    self.assertEqual(config["position"], position)
+                    css = (self.current / "waybar/style.css").read_text()
+                    window_style = css.split("window#waybar {", 1)[1].split("}", 1)[0]
+                    self.assertNotIn("border-", window_style)
+                    for edge, divider, opposite in (("top", "bottom", "top"), ("bottom", "top", "bottom")):
+                        style = css.split(f"window#waybar.{edge} {{", 1)[1].split("}", 1)[0]
+                        self.assertIn(f"border-{divider}: {stroke};", style)
+                        self.assertIn(f"border-{opposite}: none;", style)
+                    self.assert_complete()
+
     def test_retro_workspace_labels_are_plain_and_high_contrast(self):
         self.run_theme("set", "retro", "--no-reload")
         config = load_waybar_config(self.current / "waybar/config.jsonc")
