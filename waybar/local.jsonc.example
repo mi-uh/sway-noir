@@ -3,7 +3,7 @@
   // Add only your overrides. Objects merge; module arrays replace the full list.
   // "cpu": {"interval": 2},
 
-  // Optional CPU/NVIDIA GPU utilization · temperature, without units.
+  // Optional CPU/NVIDIA GPU utilization · temperature, e.g. CPU 12 · 54°.
   // Uncomment this complete list to replace usage-only cpu with custom/cpu.
   // Omit exec/format/alignment to inherit the hardware helpers and theme style.
   // NVIDIA GPU readings require the driver's nvidia-smi; missing GPUs are hidden.

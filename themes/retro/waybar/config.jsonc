@@ -10,9 +10,9 @@
   "memory": {"format": "MEM:{percentage}"},
   "custom/gpu": {"format": "GPU:{}"},
   "network": {
-    "format-wifi": "WLAN:{signalStrength}",
-    "format-ethernet": "LINK:UP",
-    "format-disconnected": "LINK:DOWN"
+    "format-wifi": "NET:{signalStrength}",
+    "format-ethernet": "NET:UP",
+    "format-disconnected": "NET:DOWN"
   },
   "pulseaudio": {
     "format": "VOL:{volume}",

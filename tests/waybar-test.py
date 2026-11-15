@@ -28,6 +28,31 @@ def private_use_characters(text):
     }
 
 
+def status_borders(css, module):
+    """Resolve border shorthands for the simple right-hand selectors used here.
+
+    This only checks static rules, not GTK rendering or pseudo-class states.
+    """
+    css = re.sub(r"/\*[\s\S]*?\*/", "", css)
+    css = re.sub(r"@define-color\b[^;]+;", "", css)
+    supported = {"*": (0, 0, 0), ".modules-right > widget > *": (0, 1, 1),
+                 f"#{module}": (1, 0, 0)}
+    matches = []
+    for order, (selectors, body) in enumerate(re.findall(r"([^{}]+)\{([^{}]*)\}", css)):
+        specificity = [supported[selector.strip()] for selector in selectors.split(",")
+                       if selector.strip() in supported]
+        if specificity:
+            matches.append((max(specificity), order, body))
+    borders = {}
+    for _specificity, _order, body in sorted(matches):
+        for key, value in re.findall(r"([\w-]+)\s*:\s*([^;]+);", body):
+            if key == "border":
+                borders.update({side: value.strip() for side in ("left", "right", "top", "bottom")})
+            elif key in ("border-left", "border-right", "border-top", "border-bottom"):
+                borders[key.removeprefix("border-")] = value.strip()
+    return borders
+
+
 class WaybarTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -40,6 +65,7 @@ class WaybarTests(unittest.TestCase):
                     )
         # Parse rendered configurations, including numeric template values.
         cls.configurations = {}
+        cls.styles = {}
         with tempfile.TemporaryDirectory(
             prefix="sway-noir-waybar-",
             dir="/tmp/opencode" if os.access("/tmp/opencode", os.W_OK) else None,
@@ -52,6 +78,7 @@ class WaybarTests(unittest.TestCase):
                 )
                 config = Path(directory) / "sway-noir/current/waybar/config.jsonc"
                 cls.configurations[theme] = load_waybar_config(config)
+                cls.styles[theme] = config.with_name("style.css").read_text()
         cls.config = cls.configurations["rain"]
 
     def test_no_icon_font_references(self):
@@ -79,6 +106,58 @@ class WaybarTests(unittest.TestCase):
         label = self.config["network"]["format-disconnected"]
         self.assertRegex(label, r"[A-Za-z]{2,}")
         self.assertFalse(private_use_characters(label))
+
+    def test_status_labels_are_consistent_across_all_themes_and_states(self):
+        labels = {"pulseaudio": "VOL", "network": "NET", "battery": "PWR",
+                  "cpu": "CPU", "custom/cpu": "CPU", "custom/gpu": "GPU", "memory": "MEM"}
+        for theme, config in self.configurations.items():
+            for module, label in labels.items():
+                for key, value in config[module].items():
+                    if key != "format" and not key.startswith("format-"):
+                        continue
+                    with self.subTest(theme=theme, module=module, state=key):
+                        text = re.sub(r"<[^>]*>", "", value)
+                        self.assertEqual(re.match(r"[A-Z]+", text)[0], label)
+
+    def test_temperature_degree_sign_is_preserved_by_every_theme(self):
+        for theme, config in self.configurations.items():
+            for module in ("custom/cpu", "custom/gpu"):
+                with self.subTest(theme=theme, module=module):
+                    text = re.sub(r"<[^>]*>", "", config[module]["format"].format("12 · 37°"))
+                    self.assertTrue(text.endswith("12 · 37°"), text)
+                    self.assertEqual(text.count("°"), 1)
+                    self.assertNotIn("°C", text)
+                    usage = re.sub(r"<[^>]*>", "", config[module]["format"].format("12"))
+                    self.assertNotIn("°", usage)
+
+    def test_status_separators_keep_native_and_custom_hardware_in_one_block(self):
+        hardware = {"cpu", "custom-cpu", "custom-gpu", "memory"}
+        layouts = (
+            ("pulseaudio", "network", "battery", "cpu", "memory", "tray", "clock"),
+            ("pulseaudio", "network", "battery", "custom-cpu", "custom-gpu", "memory", "tray", "clock"),
+            ("pulseaudio", "network", "battery", "cpu", "memory", "custom-gpu", "tray", "clock"),
+            ("pulseaudio", "network", "custom-cpu", "memory", "tray", "clock"),
+            ("pulseaudio", "battery", "custom-cpu", "memory", "tray", "clock"),
+        )
+        for theme, css in self.styles.items():
+            borders = {module: status_borders(css, module)
+                       for layout in layouts for module in layout}
+            for module in ("pulseaudio", "network", "battery"):
+                with self.subTest(theme=theme, separator_after=module):
+                    self.assertTrue(borders[module]["right"].startswith("1px solid "))
+            for layout in layouts:
+                for left, right in zip(layout, layout[1:]):
+                    with self.subTest(theme=theme, layout=layout, boundary=(left, right)):
+                        strokes = sum(border not in ("none", "0")
+                                      for border in (borders[left]["right"], borders[right]["left"]))
+                        self.assertEqual(strokes, 0 if {left, right} <= hardware else 1)
+            if theme == "rain":
+                # Keep the joined capsule's horizontal outline and rounded ends.
+                self.assertIn("@accent", borders["pulseaudio"]["left"])
+                self.assertIn("@accent", borders["clock"]["right"])
+                for module in hardware:
+                    for side in ("top", "bottom"):
+                        self.assertTrue(borders[module][side].startswith("1px solid "))
 
     def test_hardware_defaults_are_shared_and_theme_overrides_only_define_appearance(self):
         for theme, config in self.configurations.items():
@@ -159,13 +238,13 @@ class WaybarTests(unittest.TestCase):
                 rules = [(selectors.split(","), body)
                          for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)]
                 # Match the module child of the EventBox, not nested labels,
-                # tray icons or workspace buttons. No per-module CSS is needed.
+                # tray icons or workspace buttons. Shared appearance stays generic;
+                # hardware-specific rules only suppress internal separators.
                 status_rules = [body for selectors, body in rules
                                 if ".modules-right > widget > *" in
                                 [selector.strip() for selector in selectors]]
                 self.assertEqual(len(status_rules), 1)
                 self.assertIn("padding:", status_rules[0])
-                self.assertNotIn("#custom-gpu", css)
                 cpu_rules = [body for selectors, body in rules
                              if "#cpu" in [selector.strip() for selector in selectors]]
                 self.assertIn(status_rules[0], cpu_rules)

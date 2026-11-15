@@ -30,7 +30,7 @@
   "network": {
     "align": 0.5,
     "justify": "center",
-    "format-wifi": "<span size=\"small\" foreground=\"{{muted}}\">WIFI</span>  <span weight=\"semibold\">{signalStrength}</span>",
+    "format-wifi": "<span size=\"small\" foreground=\"{{muted}}\">NET</span>  <span weight=\"semibold\">{signalStrength}</span>",
     "format-ethernet": "<span size=\"small\" foreground=\"{{muted}}\">NET</span>  <span weight=\"semibold\">ETH</span>",
     "format-disconnected": "<span size=\"small\" foreground=\"{{muted}}\">NET</span>  <span weight=\"semibold\">OFF</span>"
   },

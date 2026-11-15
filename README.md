@@ -170,12 +170,15 @@ automatically.
 New right-hand status modules receive the theme's padding, colors and borders.
 Both hardware modules also have matching text formats in all bundled themes.
 Leave `format`, `align` and `justify` unset locally to inherit them.
+All bundled themes use **VOL, NET, PWR, CPU, GPU and MEM**. Separators distinguish
+VOL/NET/PWR; CPU/GPU/MEM share one block.
 
 #### Optional CPU and NVIDIA GPU temperatures
 
 **Off by default:** the standard bar keeps native `cpu` utilization only and does
-not enable GPU readings. To show **CPU 12 · 54** and **GPU 28 · 61**, without
-units, add this list to `local.jsonc` (or uncomment it in the
+not enable GPU readings. To show **CPU 12 · 54°** and **GPU 28 · 61°**, with a
+degree sign but no `C` or percentage sign, add this list to `local.jsonc`
+(or uncomment it in the
 [example](waybar/local.jsonc.example)):
 
 ```jsonc
