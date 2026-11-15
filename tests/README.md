@@ -93,7 +93,11 @@ results, so Fedora, Debian/Ubuntu, Arch and Atomic hints do not depend on the ho
 python3 tests/audio-test.py
 python3 tests/dependencies-test.py
 python3 tests/polkit-test.py
+python3 tests/hardware-test.py
 ```
+
+Hardware tests use fake CPU counters, Intel/AMD sensors, thermal zones and NVIDIA
+command output; they cover missing/invalid readings without querying host hardware.
 
 ## Appearance and theme switching
 
@@ -127,7 +131,8 @@ it is not a complete implementation of Waybar's path expansion.
 | Select Always top, then Always bottom; switch all themes each time | Bar stays at the selected edge on all outputs; Rain's 8 px gap follows it |
 | Move Praxis/Retro between top and bottom | Divider faces the desktop: below a top bar, above a bottom bar; color and thickness unchanged |
 | Cancel the position submenu with Escape | Theme and position unchanged |
-| Add `custom/gpu` between memory and tray in `waybar/local.jsonc`, without local format/alignment overrides; reselect each theme | GPU text and padding/background/borders match CPU/MEM, including Praxis's small label and bold value; no extra styling on tray icons |
+| Use the standard bar without local overrides | Native CPU utilization only; no temperatures or GPU module |
+| Enable `custom/cpu` and `custom/gpu` via the example's local module list; reselect each theme | Utilization · temperature without units; consistent CPU/GPU/MEM styling; usage remains if temperature is unavailable; GPU hides if unavailable |
 | Log out/in with a fixed position, then restore Theme default | Position persists; reset restores the current theme's original layout |
 | Open launcher, send notification, lock | Matching theme |
 | Test audio keys and authentication prompts | Controls work; no duplicate agent |

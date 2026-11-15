@@ -26,6 +26,16 @@
     "tooltip-format-disconnected": "Disconnected"
   },
   "cpu": {"interval": 3, "tooltip": false},
+  "custom/cpu": {
+    "exec": "\"$SWAY_NOIR_DIR/session/hardware-status\" cpu",
+    "interval": 3,
+    "tooltip": false
+  },
+  "custom/gpu": {
+    "exec": "\"$SWAY_NOIR_DIR/session/hardware-status\" gpu",
+    "interval": 3,
+    "tooltip": false
+  },
   "memory": {"interval": 5},
   "clock": {
     "format": "{:%m-%d · %H:%M}",

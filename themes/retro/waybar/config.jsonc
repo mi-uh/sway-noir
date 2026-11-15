@@ -6,6 +6,7 @@
   "margin-right": 0,
   "sway/window": {"max-length": 36},
   "cpu": {"format": "CPU:{usage}"},
+  "custom/cpu": {"format": "CPU:{}"},
   "memory": {"format": "MEM:{percentage}"},
   "custom/gpu": {"format": "GPU:{}"},
   "network": {

@@ -39,6 +39,7 @@ initialize_file_registry() {
     register_profile_file session/run-apps 755
     register_profile_file session/screenshot 755
     register_profile_file session/optional-command 755
+    register_profile_file session/hardware-status 755
     register_profile_file session/polkit-agent 755
     register_profile_file session/theme 755
     register_profile_file session/lock-screen 755

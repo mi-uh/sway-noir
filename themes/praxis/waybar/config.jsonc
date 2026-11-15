@@ -11,6 +11,11 @@
     "align": 0.5,
     "justify": "center"
   },
+  "custom/cpu": {
+    "format": "<span size=\"small\" foreground=\"{{muted}}\">CPU</span>  <span weight=\"semibold\">{:0>2}</span>",
+    "align": 0.5,
+    "justify": "center"
+  },
   "memory": {
     "format": "<span size=\"small\" foreground=\"{{muted}}\">MEM</span>  <span weight=\"semibold\">{percentage:02}</span>",
     "align": 0.5,

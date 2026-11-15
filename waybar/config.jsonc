@@ -25,6 +25,7 @@
   "cpu": {
     "format": "CPU {usage}"
   },
+  "custom/cpu": {"format": "CPU {}"},
   "memory": {
     "format": "RAM {percentage}",
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"

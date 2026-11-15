@@ -24,7 +24,7 @@ PORTAL_UNITS = (
 )
 OPTIONAL = (
     "wpctl", "gammastep", "brightnessctl", "playerctl", "grim", "slurp",
-    "pavucontrol", "lxqt-policykit-agent",
+    "pavucontrol", "lxqt-policykit-agent", "nvidia-smi",
 )
 UTILITIES = (
     "cat", "chmod", "date", "dirname", "find", "findmnt", "grep", "head", "install", "mktemp", "mv",

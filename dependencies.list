@@ -24,6 +24,7 @@ feature|command|grim|grim|grim|grim
 feature|command|slurp|slurp|slurp|slurp
 feature|command|wpctl|wireplumber|wireplumber|wireplumber
 feature|command|pavucontrol|pavucontrol|pavucontrol|pavucontrol
+feature|command|nvidia-smi|xorg-x11-drv-nvidia-cuda|nvidia-smi|nvidia-utils
 feature|polkit|lxqt-policykit-agent|lxqt-policykit qt6-qtwayland|lxqt-policykit qt6-wayland|lxqt-policykit qt6-wayland
 profile|unit|xdg-desktop-portal.service|xdg-desktop-portal|xdg-desktop-portal|xdg-desktop-portal
 profile|unit|xdg-desktop-portal-gtk.service|xdg-desktop-portal-gtk|xdg-desktop-portal-gtk|xdg-desktop-portal-gtk
