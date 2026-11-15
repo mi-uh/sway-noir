@@ -1,0 +1,35 @@
+{
+  "layer": "top",
+  "position": "{{bar_position}}",
+  "spacing": 0,
+  "margin-top": {{bar_margin_top}},
+  "margin-bottom": {{bar_margin_bottom}},
+  "reload_style_on_change": true,
+  "modules-left": ["sway/workspaces", "sway/mode"],
+  "modules-center": ["sway/window"],
+  "modules-right": ["pulseaudio", "network", "battery", "cpu", "memory", "tray", "clock"],
+  "sway/workspaces": {
+    "all-outputs": false,
+    "disable-scroll": true,
+    "format": "{name}"
+  },
+  "sway/mode": {"format": "[{mode}]"},
+  "sway/window": {"format": "{title}"},
+  "tray": {"spacing": 8},
+  "pulseaudio": {
+    "scroll-step": 2,
+    "on-click": "\"$SWAY_NOIR_DIR/session/optional-command\" --shell audio-settings \"${SWAY_NOIR_AUDIO_SETTINGS_COMMAND-pavucontrol}\""
+  },
+  "network": {
+    "tooltip-format-wifi": "{essid} - {ipaddr}/{cidr}",
+    "tooltip-format-ethernet": "{ifname} - {ipaddr}/{cidr}",
+    "tooltip-format-disconnected": "Disconnected"
+  },
+  "cpu": {"interval": 3, "tooltip": false},
+  "memory": {"interval": 5},
+  "clock": {
+    "format": "{:%m-%d · %H:%M}",
+    "tooltip-format": "<tt><small>{calendar}</small></tt>"
+  },
+  "battery": {"states": {"warning": 30, "critical": 15}}
+}

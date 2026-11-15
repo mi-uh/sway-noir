@@ -52,6 +52,7 @@ initialize_file_registry() {
     register_profile_file sway/config.d/99-startup.conf
     register_profile_file sway/backgrounds/cozy-cyberpunk-room.png
     register_profile_file waybar/config.jsonc
+    register_profile_file waybar/base.jsonc
     register_profile_file waybar/style.css
     register_profile_file fuzzel/fuzzel.ini
     register_profile_file mako/config

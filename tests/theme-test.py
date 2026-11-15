@@ -13,6 +13,8 @@ import time
 import unittest
 import xml.etree.ElementTree as ET
 
+from waybar_config import load_waybar_config
+
 
 ROOT = Path(__file__).resolve().parent.parent
 BUNDLED_THEMES = ("praxis", "rain", "retro")
@@ -95,7 +97,7 @@ class Themes(unittest.TestCase):
         self.assertIn("background=111315f2", (self.current / "fuzzel/fuzzel.ini").read_text())
         self.assertIn("border-color=#9b2c3dff", (self.current / "mako/config").read_text())
         self.assertIn(f"image={self.profile}/swaylock/cozy-cyberpunk-room-lock.png", (self.current / "swaylock/config").read_text())
-        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "top")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "top")
         self.assertFalse(self.log.exists())
 
     def test_saved_original_theme_migrates_to_rain(self):
@@ -126,7 +128,7 @@ class Themes(unittest.TestCase):
         self.run_theme("set", "retro")
         self.assert_complete()
         self.assertEqual(self.run_theme("current").stdout, "retro\n")
-        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "bottom")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "bottom")
         self.assertIn('output * background "$SWAY_NOIR_DIR/themes/retro/wallpaper.png" fill #080d0b',
                       (self.current / "sway.conf").read_text())
         self.assertIn(f"image={self.profile}/themes/retro/lock-screen.png",
@@ -151,7 +153,7 @@ class Themes(unittest.TestCase):
         self.assertFalse((self.current / "bar-position").exists())
         self.run_theme("init")
         self.assertEqual((self.current / "bar-position").read_text(), "default\n")
-        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "bottom")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "bottom")
         self.assert_complete()
 
     def test_fixed_bar_positions_survive_all_theme_switches_and_login(self):
@@ -163,7 +165,7 @@ class Themes(unittest.TestCase):
                     self.run_theme("init")
                     self.assertEqual(self.run_theme("current").stdout, theme + "\n")
                     self.assertEqual(self.run_theme("bar-position").stdout, position + "\n")
-                    config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                    config = load_waybar_config(self.current / "waybar/config.jsonc")
                     self.assertEqual(config["position"], position)
                     self.assertEqual(config["margin-top"], 8 if theme == "rain" and position == "top" else 0)
                     self.assertEqual(config["margin-bottom"], 8 if theme == "rain" and position == "bottom" else 0)
@@ -178,10 +180,10 @@ class Themes(unittest.TestCase):
         for theme in BUNDLED_THEMES:
             with self.subTest(theme=theme):
                 self.run_theme("set", theme, "--no-reload")
-                original = (self.current / "waybar/config.jsonc").read_text()
+                original = load_waybar_config(self.current / "waybar/config.jsonc")
                 self.run_theme("bar-position", "bottom" if theme == "rain" else "top", "--no-reload")
                 self.assertEqual(self.run_theme("bar-position", "default", "--no-reload").stdout, "default\n")
-                self.assertEqual((self.current / "waybar/config.jsonc").read_text(), original)
+                self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc"), original)
                 self.assertEqual(self.run_theme("current").stdout, theme + "\n")
                 self.assert_complete()
         self.assertFalse(self.log.exists())
@@ -191,7 +193,7 @@ class Themes(unittest.TestCase):
         self.assertEqual(self.run_theme("current").stdout, "rain\n")
         self.run_theme("init")
         self.assertEqual(self.run_theme("bar-position").stdout, "bottom\n")
-        config = json.loads((self.current / "waybar/config.jsonc").read_text())
+        config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual(config["position"], "bottom")
         self.assertEqual(config["margin-bottom"], 8)
         self.assertFalse(self.log.exists())
@@ -211,7 +213,7 @@ class Themes(unittest.TestCase):
             with self.subTest(position=position):
                 self.run_theme("bar-position", position, "--no-reload")
                 self.run_theme("init")
-                config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
                 self.assertEqual((config["position"], config["margin-top"], config["margin-bottom"]), expected)
                 self.assert_complete()
 
@@ -281,12 +283,12 @@ class Themes(unittest.TestCase):
         self.assertIn("using Rain", result.stderr)
         self.assertEqual(self.run_theme("current").stdout, "rain\n")
         self.assertEqual(self.run_theme("bar-position").stdout, "bottom\n")
-        self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "bottom")
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "bottom")
 
     def test_bundled_status_labels_have_no_percent_signs(self):
         for theme in BUNDLED_THEMES:
             self.run_theme("set", theme, "--no-reload")
-            config = json.loads((self.current / "waybar/config.jsonc").read_text())
+            config = load_waybar_config(self.current / "waybar/config.jsonc")
             for module in ("cpu", "memory", "network", "pulseaudio", "battery"):
                 for key, value in config[module].items():
                     if key == "format" or key.startswith("format-"):
@@ -299,15 +301,69 @@ class Themes(unittest.TestCase):
         for theme in BUNDLED_THEMES:
             with self.subTest(theme=theme):
                 self.run_theme("set", theme, "--no-reload")
-                config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
                 self.assertNotIn("custom/theme", config)
                 for position in ("left", "center", "right"):
                     self.assertNotIn("custom/theme", config[f"modules-{position}"])
                 self.assertNotIn("#custom-theme", (self.current / "waybar/style.css").read_text())
 
+    def test_shared_waybar_behavior_changes_reach_every_bundled_theme(self):
+        base = self.profile / "waybar/base.jsonc"
+        base.write_text(base.read_text().replace('"interval": 3', '"interval": 7')
+                        .replace('"scroll-step": 2', '"scroll-step": 4')
+                        .replace('"clock"]', '"clock", "custom/test"]'))
+        for theme in BUNDLED_THEMES:
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
+                self.assertEqual(config["cpu"]["interval"], 7)
+                self.assertEqual(config["pulseaudio"]["scroll-step"], 4)
+                self.assertEqual(config["modules-right"][-1], "custom/test")
+                self.assert_complete()
+
+    def test_theme_waybar_overrides_do_not_inherit_rain_only_options(self):
+        for theme in BUNDLED_THEMES:
+            with self.subTest(theme=theme):
+                self.run_theme("set", theme, "--no-reload")
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
+                self.assertEqual("rewrite" in config["sway/window"], theme == "rain")
+                self.assertEqual("max-length" in config["network"], theme == "rain")
+                self.assertEqual("tooltip-format" in config["memory"], theme != "retro")
+                self.assertEqual(config["tray"]["spacing"], 6 if theme == "praxis" else 8)
+                self.assertEqual("icon-size" in config["tray"], theme == "praxis")
+
+    def test_personal_full_waybar_config_remains_a_complete_replacement(self):
+        theme = self.profile / "themes/personal"
+        (theme / "waybar").mkdir(parents=True)
+        (theme / "theme.conf").write_text("name=Personal\n")
+        custom = {"position": "{{bar_position}}", "height": 24, "modules-right": ["clock"],
+                  "clock": {"format": "{:%H:%M}"}}
+        (theme / "waybar/config.jsonc").write_text(json.dumps(custom))
+        self.run_theme("set", "personal", "--no-reload")
+        self.run_theme("bar-position", "bottom", "--no-reload")
+        custom["position"] = "bottom"
+        self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc"), custom)
+        self.assert_complete()
+
+    def test_personal_waybar_partial_config_can_include_shared_base(self):
+        theme = self.profile / "themes/personal"
+        (theme / "waybar").mkdir(parents=True)
+        (theme / "theme.conf").write_text("name=Personal\n")
+        (theme / "waybar/config.jsonc").write_text(json.dumps({
+            "include": '"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc"',
+            "height": 27, "cpu": {"format": "LOAD {usage}"},
+        }))
+        self.run_theme("set", "personal", "--no-reload")
+        config = load_waybar_config(self.current / "waybar/config.jsonc")
+        self.assertEqual(config["height"], 27)
+        self.assertEqual(config["cpu"], {"format": "LOAD {usage}", "interval": 3, "tooltip": False})
+        self.assertEqual(config["position"], "top")
+        self.assertIn("on-click", config["pulseaudio"])
+        self.assert_complete()
+
     def test_retro_workspace_labels_are_plain_and_high_contrast(self):
         self.run_theme("set", "retro", "--no-reload")
-        config = json.loads((self.current / "waybar/config.jsonc").read_text())
+        config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual(config["sway/workspaces"]["format"], "{name}")
         css = (self.current / "waybar/style.css").read_text()
         workspace_style = css.split("#workspaces button {", 1)[1].split("}", 1)[0]
@@ -331,7 +387,7 @@ class Themes(unittest.TestCase):
         for theme in BUNDLED_THEMES:
             with self.subTest(theme=theme):
                 self.run_theme("set", theme, "--no-reload")
-                config = json.loads((self.current / "waybar/config.jsonc").read_text())
+                config = load_waybar_config(self.current / "waybar/config.jsonc")
                 self.assertEqual(config["modules-center"], ["sway/window"])
                 self.assertNotIn("sway/window", config["modules-left"])
                 self.assertEqual(config["modules-right"][-1], "clock")
@@ -362,7 +418,7 @@ class Themes(unittest.TestCase):
         self.assertIn("default_border pixel 1", sway)
         self.assertIn("gaps inner 12", sway)
         self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.png" fill #0c0e0d', sway)
-        config = json.loads((self.current / "waybar/config.jsonc").read_text())
+        config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual(config["position"], "bottom")
         self.assertEqual(config["height"], 36)
         self.assertNotIn("width", config)
@@ -561,7 +617,7 @@ class Themes(unittest.TestCase):
                 position.result()
             self.assertEqual(self.run_theme("current").stdout, "retro\n")
             self.assertEqual(self.run_theme("bar-position").stdout, "top\n")
-            self.assertEqual(json.loads((self.current / "waybar/config.jsonc").read_text())["position"], "top")
+            self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "top")
             self.assert_complete()
 
     def test_lock_helper_resolves_latest_theme_without_restarting_locker(self):
@@ -609,6 +665,21 @@ class Themes(unittest.TestCase):
         finally:
             os.killpg(process.pid, signal.SIGTERM)
             process.communicate(timeout=5)
+
+    def test_supervisor_exports_fallback_directory_for_waybar_include(self):
+        self.run_theme("init")
+        self.script("waybar", '[[ -f "$SWAY_NOIR_THEME_DIR/waybar/base.jsonc" ]]\n'
+                    'printf "%s\\n" "$SWAY_NOIR_THEME_DIR" > "$THEME_LOG"\n')
+        self.script("mako", "exit 0\n")
+        self.script("swayidle", "exit 0\n")
+        environment = self.environment.copy()
+        environment.pop("SWAY_NOIR_THEME_DIR")
+        result = subprocess.run(
+            [str(self.profile / "session/run-apps"), "lock-screen", "true", "true"],
+            env=environment, capture_output=True, text=True, timeout=5,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log.read_text().strip(), str(self.current))
 
     def wait_for_log(self, text, process):
         deadline = time.monotonic() + 5

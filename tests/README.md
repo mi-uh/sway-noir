@@ -101,6 +101,13 @@ python3 tests/waybar-test.py
 python3 tests/theme-test.py
 ```
 
+Waybar checks resolve native includes with first-defined-wins recursive object
+merging (arrays are not concatenated). They verify that changes to shared
+behavior reach every theme, theme overrides stay isolated, and full and partial
+personal configurations remain supported. The helper in `tests/waybar_config.py`
+handles the literal/quoted include paths used here without executing shell code;
+it is not a complete implementation of Waybar's path expansion.
+
 ## Live smoke test
 
 **Requires a running Sway Noir session.** Save work before logout/suspend checks.

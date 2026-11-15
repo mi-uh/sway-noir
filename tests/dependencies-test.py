@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Check required/optional dependencies without using host desktop commands."""
 
-import json
 import os
 from pathlib import Path
 import re
@@ -9,6 +8,8 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+
+from waybar_config import load_waybar_config
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -311,7 +312,7 @@ class OptionalCommands(IsolatedTest):
             env={**os.environ, "XDG_STATE_HOME": str(state)}, check=True,
             capture_output=True, text=True, timeout=10,
         )
-        command = json.loads((state / "sway-noir/current/waybar/config.jsonc").read_text())["pulseaudio"]["on-click"]
+        command = load_waybar_config(state / "sway-noir/current/waybar/config.jsonc")["pulseaudio"]["on-click"]
         self.environment["SWAY_NOIR_AUDIO_SETTINGS_COMMAND"] = "record 'custom audio settings'"
         result = subprocess.run(
             ["/usr/bin/bash", "-c", command], env=self.environment, capture_output=True, text=True,

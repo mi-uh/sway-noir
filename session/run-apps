@@ -9,6 +9,8 @@ fi
 profile_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly profile_dir
 readonly theme_dir="${SWAY_NOIR_THEME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/sway-noir/current}"
+# Waybar expands the quoted include path in config.jsonc using this variable.
+export SWAY_NOIR_THEME_DIR="$theme_dir"
 readonly lock_command="$1"
 readonly polkit_agent_command="$2"
 shift 2
