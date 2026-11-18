@@ -121,7 +121,7 @@ class WaybarTests(unittest.TestCase):
         for theme, config in self.configurations.items():
             with self.subTest(theme=theme):
                 self.assertEqual(config["modules-right"], [
-                    "pulseaudio", "network", "battery", "cpu", "memory", "tray", "clock",
+                    "pulseaudio", "network", "battery", "memory", "cpu", "tray", "clock",
                 ])
 
     def test_plain_text_network_status(self):
@@ -155,9 +155,9 @@ class WaybarTests(unittest.TestCase):
     def test_status_separators_keep_native_and_custom_hardware_in_one_block(self):
         hardware = {"cpu", "custom-cpu", "custom-gpu", "memory"}
         layouts = (
-            ("pulseaudio", "network", "battery", "cpu", "memory", "tray", "clock"),
-            ("pulseaudio", "network", "battery", "custom-cpu", "custom-gpu", "memory", "tray", "clock"),
-            ("pulseaudio", "network", "battery", "cpu", "memory", "custom-gpu", "tray", "clock"),
+            ("pulseaudio", "network", "battery", "memory", "cpu", "tray", "clock"),
+            ("pulseaudio", "network", "battery", "memory", "custom-cpu", "custom-gpu", "tray", "clock"),
+            ("pulseaudio", "network", "battery", "memory", "cpu", "custom-gpu", "tray", "clock"),
             ("pulseaudio", "network", "custom-cpu", "memory", "tray", "clock"),
             ("pulseaudio", "battery", "custom-cpu", "memory", "tray", "clock"),
         )
