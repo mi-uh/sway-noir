@@ -7,5 +7,5 @@
   // Uncomment this complete list to replace usage-only cpu with custom/cpu.
   // Omit exec/format/alignment to inherit the hardware helpers and theme style.
   // NVIDIA GPU readings require the driver's nvidia-smi; missing GPUs are hidden.
-  // "modules-right": ["pulseaudio", "network", "battery", "custom/cpu", "custom/gpu", "memory", "tray", "clock"]
+  // "modules-right": ["pulseaudio", "network", "battery", "memory", "custom/cpu", "custom/gpu", "tray", "clock"]
 }

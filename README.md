@@ -182,7 +182,7 @@ degree sign but no `C` or percentage sign, add this list to `local.jsonc`
 [example](waybar/local.jsonc.example)):
 
 ```jsonc
-"modules-right": ["pulseaudio", "network", "battery", "custom/cpu", "custom/gpu", "memory", "tray", "clock"]
+"modules-right": ["pulseaudio", "network", "battery", "memory", "custom/cpu", "custom/gpu", "tray", "clock"]
 ```
 
 CPU temperatures use Intel/AMD kernel sensors, with CPU thermal zones as a
