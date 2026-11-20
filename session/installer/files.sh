@@ -49,21 +49,13 @@ initialize_file_registry() {
     register_profile_file sway/config.d/40-look.conf
     register_profile_file sway/config.d/50-input.conf
     register_profile_file sway/config.d/60-keybindings.conf
-    register_profile_file sway/config.d/90-bar.conf
     register_profile_file sway/config.d/99-startup.conf
-    register_profile_file sway/backgrounds/cozy-cyberpunk-room.png
-    register_profile_file waybar/config.jsonc
     register_profile_file waybar/base.jsonc
     register_profile_file waybar/local.jsonc.example
-    register_profile_file waybar/colors.css
-    register_profile_file waybar/style.css
-    register_profile_file fuzzel/fuzzel.ini
-    register_profile_file mako/config
     register_profile_file gammastep/config.ini
-    register_profile_file swaylock/config
-    register_profile_file swaylock/cozy-cyberpunk-room-lock.png
 
-    # Personal themes absent from the checkout remain untouched.
+    # Bundled themes, including Rain's default templates. Personal themes
+    # absent from the checkout remain untouched.
     local theme_file
     while IFS= read -r theme_file; do
         register_profile_file "${theme_file#"$setup_dir/"}"

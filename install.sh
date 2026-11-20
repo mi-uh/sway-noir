@@ -23,8 +23,8 @@ install_complete=false
 check_deps_only=false
 list_deps_only=false
 portal_configuration=""
-obsolete_theme_files=()
-obsolete_theme_checksums=()
+obsolete_profile_files=()
+obsolete_profile_checksums=()
 
 warn() {
     printf 'Warning: %s\n' "$*" >&2
@@ -127,7 +127,7 @@ main() {
 
     # Commit ownership only after verification and obsolete-file cleanup finish.
     verify_installation
-    remove_obsolete_theme_files
+    remove_obsolete_profile_files
     remove_old_login_files
     write_profile_manifest
     install_complete=true

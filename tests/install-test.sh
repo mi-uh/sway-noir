@@ -98,7 +98,7 @@ for case_name in \
         config-root) target_path="$case_config" ;;
         profile-root) target_path="$case_config/sway-noir" ;;
         profile-directory|dangling-profile-directory|non-directory)
-            target_path="$case_config/sway-noir/swaylock" ;;
+            target_path="$case_config/sway-noir/sway/config.d" ;;
         systemd-root) target_path="$case_config/systemd" ;;
         systemd-directory) target_path="$case_config/systemd/user" ;;
         portal-directory) target_path="$case_config/xdg-desktop-portal" ;;
@@ -142,7 +142,7 @@ atomic_home="$atomic_root/home/test-user"
 atomic_config="$atomic_home/config"
 install -d "$atomic_repo" "$atomic_root/var/home/test-user" "$atomic_root/outside"
 ln -s var/home "$atomic_root/home"
-for path in install.sh dependencies.list start-sway-noir session sway swaylock waybar fuzzel mako gammastep systemd themes xdg-desktop-portal; do
+for path in install.sh dependencies.list start-sway-noir session sway waybar gammastep systemd themes xdg-desktop-portal; do
     cp -a -- "$repo_root/$path" "$atomic_repo/"
 done
 # Model system redirects below a fixture root, never by changing the host /home.
@@ -154,11 +154,11 @@ if ! HOME="$atomic_home" XDG_CONFIG_HOME="$atomic_config" \
     fail 'the standard Atomic home redirect blocked profile installation'
 fi
 assert_file "$atomic_root/var/home/test-user/config/sway-noir/start-sway-noir"
-printf '\n# modified before update\n' >> "$atomic_config/sway-noir/mako/config"
+printf '\n# modified before update\n' >> "$atomic_config/sway-noir/themes/rain/mako/config"
 HOME="$atomic_home" XDG_CONFIG_HOME="$atomic_config" \
     "$atomic_repo/install.sh" --profile-only > "$test_root/atomic-home-update.log" 2>&1
 atomic_backup="$(find "$atomic_config/sway-setup-backups" \
-    -path '*/sway-noir/mako/config' -type f -print -quit)"
+    -path '*/sway-noir/themes/rain/mako/config' -type f -print -quit)"
 assert_file "$atomic_backup"
 HOME="$atomic_home" XDG_CONFIG_HOME="$atomic_config" \
     "$atomic_repo/install.sh" --uninstall --yes > "$test_root/atomic-home-uninstall.log" 2>&1
@@ -268,7 +268,7 @@ assert_file "$test_config/sway-noir/themes/retro/waybar/style.css"
 for component in theme.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini.override mako/config.override swaylock/config.override; do
     assert_same "$repo_root/themes/praxis/$component" "$test_config/sway-noir/themes/praxis/$component"
 done
-for image in wallpaper.png lock-screen.png; do
+for image in wallpaper.jpg lock-screen.jpg; do
     assert_same "$repo_root/themes/retro/$image" "$test_config/sway-noir/themes/retro/$image"
     assert_same "$repo_root/themes/praxis/$image" "$test_config/sway-noir/themes/praxis/$image"
 done
@@ -276,13 +276,13 @@ install -d "$test_config/sway-noir/themes/personal"
 "$test_config/sway-noir/session/theme" set praxis --no-reload > /dev/null
 [[ "$(< "$test_state/sway-noir/current/theme-id")" == praxis ]] || fail 'installed Praxis theme could not be selected'
 assert_file "$test_state/sway-noir/current/waybar/base.jsonc"
-grep -Fqx "image=$test_config/sway-noir/themes/praxis/lock-screen.png" \
+grep -Fqx "image=$test_config/sway-noir/themes/praxis/lock-screen.jpg" \
     "$test_state/sway-noir/current/swaylock/config" || fail 'installed Praxis lock image path is incorrect'
 printf 'name=Personal Rain\n' > "$test_config/sway-noir/themes/personal/theme.conf"
 "$test_config/sway-noir/session/theme" set retro --no-reload > /dev/null
 assert_file "$test_config/sway-noir/.installed-files.sha256"
 assert_file "$test_config/sway-noir/sway/config.d/99-local.conf"
-assert_same "$repo_root/mako/config" "$test_config/sway-noir/mako/config"
+assert_same "$repo_root/themes/rain/mako/config" "$test_config/sway-noir/themes/rain/mako/config"
 
 # Equal contents must not hide damaged executable or configuration permissions.
 profile_executables=(start-sway-noir session/start-session session/run-apps session/screenshot
@@ -290,7 +290,7 @@ profile_executables=(start-sway-noir session/start-session session/run-apps sess
 for relative_path in "${profile_executables[@]}"; do
     chmod 644 "$test_config/sway-noir/$relative_path"
 done
-chmod 755 "$test_config/sway-noir/mako/config" \
+chmod 755 "$test_config/sway-noir/themes/rain/mako/config" \
     "$test_config/systemd/user/sway-noir-session.target"
 chmod 600 "$personal_config"
 "$repo_root/install.sh" --profile-only > "$test_root/mode-repair.log" 2>&1
@@ -298,7 +298,7 @@ for relative_path in "${profile_executables[@]}"; do
     [[ "$(stat -c '%a' "$test_config/sway-noir/$relative_path")" == 755 ]] ||
         fail "update did not repair executable permissions: $relative_path"
 done
-for target_path in "$test_config/sway-noir/mako/config" \
+for target_path in "$test_config/sway-noir/themes/rain/mako/config" \
     "$test_config/systemd/user/sway-noir-session.target"; do
     [[ "$(stat -c '%a' "$target_path")" == 644 ]] ||
         fail "update did not repair configuration permissions: $target_path"
@@ -349,7 +349,7 @@ if grep -Fq 'bindsym --locked XF86AudioMicMute' \
     fail 'microphone mute binding remains active while the session is locked'
 fi
 
-printf '\n# changed by installer test\n' >> "$test_config/sway-noir/mako/config"
+printf '\n# changed by installer test\n' >> "$test_config/sway-noir/themes/rain/mako/config"
 # A retired bundled theme is identified by its old manifest, not its name.
 retired="$test_config/sway-noir/themes/retired"
 customized="$test_config/sway-noir/themes/customized"
@@ -365,14 +365,28 @@ printf 'outside profile\n' > "$test_config/outside.txt"
     sha256sum themes/retired/theme.conf themes/retired/waybar/style.css \
         themes/customized/theme.conf themes/linked/theme.conf themes/../../outside.txt
 ) >> "$test_config/sway-noir/.installed-files.sha256"
+# Files of earlier releases outside themes/ retire the same way.
+profile_dir="$test_config/sway-noir"
+install -D -m 644 /dev/null "$profile_dir/sway/config.d/90-bar.conf"
+printf '# Waybar starts from 99-startup.conf.\n' > "$profile_dir/sway/config.d/90-bar.conf"
+install -D -m 644 /dev/null "$profile_dir/fuzzel/fuzzel.ini"
+printf '[main]\n' > "$profile_dir/fuzzel/fuzzel.ini"
+install -D -m 644 /dev/null "$profile_dir/mako/config"
+printf 'font=old\n' > "$profile_dir/mako/config"
+(
+    cd "$profile_dir"
+    sha256sum sway/config.d/90-bar.conf fuzzel/fuzzel.ini mako/config sway/config.d/99-local.conf
+) >> "$profile_dir/.installed-files.sha256"
+printf '# personal change\n' >> "$profile_dir/mako/config"
+local_sway_hash="$(sha256sum < "$profile_dir/sway/config.d/99-local.conf")"
 printf '# personal change\n' >> "$customized/theme.conf"
 rm -- "$linked/theme.conf"
 ln -s "$repo_root/themes/rain/theme.conf" "$linked/theme.conf"
 "$repo_root/install.sh" --profile-only > "$test_root/update.log" 2>&1
 
-assert_same "$repo_root/mako/config" "$test_config/sway-noir/mako/config"
+assert_same "$repo_root/themes/rain/mako/config" "$test_config/sway-noir/themes/rain/mako/config"
 backup_file="$(find "$test_config/sway-setup-backups" \
-    -path '*/sway-noir/mako/config' -type f -print -quit)"
+    -path '*/sway-noir/themes/rain/mako/config' -type f -print -quit)"
 assert_file "$backup_file"
 [[ ! -e "$retired" ]] || fail 'retired bundled theme remained selectable after update'
 retired_backup="$(find "$test_config/sway-setup-backups" \
@@ -380,6 +394,12 @@ retired_backup="$(find "$test_config/sway-setup-backups" \
 assert_file "$retired_backup"
 grep -Fqx 'name=Retired' "$retired_backup" || fail 'retired theme was not backed up'
 assert_file "$customized/theme.conf"
+[[ ! -e "$profile_dir/sway/config.d/90-bar.conf" && ! -e "$profile_dir/fuzzel" ]] ||
+    fail 'retired files outside themes/ remained after update'
+assert_file "$(find "$test_config/sway-setup-backups" -path '*/sway-noir/sway/config.d/90-bar.conf' -type f -print -quit)"
+grep -Fqx 'font=old' "$profile_dir/mako/config" || fail 'modified retired file was removed'
+[[ "$(sha256sum < "$profile_dir/sway/config.d/99-local.conf")" == "$local_sway_hash" ]] ||
+    fail 'personal 99-local.conf was treated as a retired file'
 [[ -L "$linked/theme.conf" ]] || fail 'obsolete theme symlink was removed'
 assert_file "$test_config/outside.txt"
 assert_file "$test_config/sway-noir/themes/personal/theme.conf"
@@ -415,10 +435,10 @@ fi
         fail 'migrated theme ID was not persisted at session startup'
 )
 
-printf '\n# keep my changes\n' >> "$test_config/sway-noir/mako/config"
-modified_hash="$(sha256sum < "$test_config/sway-noir/mako/config")"
-rm -- "$test_config/sway-noir/fuzzel/fuzzel.ini"
-ln -s "$repo_root/fuzzel/fuzzel.ini" "$test_config/sway-noir/fuzzel/fuzzel.ini"
+printf '\n# keep my changes\n' >> "$test_config/sway-noir/themes/rain/mako/config"
+modified_hash="$(sha256sum < "$test_config/sway-noir/themes/rain/mako/config")"
+rm -- "$test_config/sway-noir/themes/rain/fuzzel/fuzzel.ini"
+ln -s "$repo_root/themes/rain/fuzzel/fuzzel.ini" "$test_config/sway-noir/themes/rain/fuzzel/fuzzel.ini"
 rm -- "$test_config/sway-noir/gammastep/config.ini"
 ln -s "$test_root/nonexistent" "$test_config/sway-noir/gammastep/config.ini"
 printf 'personal file\n' > "$test_config/sway-noir/personal.conf"
@@ -432,9 +452,9 @@ assert_file "$backup_file"
 assert_same "$repo_root/sway/config.d/99-local.conf.example" "$personal_config"
 [[ ! -e "$test_config/sway-noir/start-sway-noir" ]] || fail 'unchanged profile file remained'
 assert_file "$test_config/sway-noir/.installed-files.sha256"
-[[ "$(sha256sum < "$test_config/sway-noir/mako/config")" == "$modified_hash" ]] ||
+[[ "$(sha256sum < "$test_config/sway-noir/themes/rain/mako/config")" == "$modified_hash" ]] ||
     fail 'modified profile file was not preserved'
-[[ -L "$test_config/sway-noir/fuzzel/fuzzel.ini" ]] || fail 'symbolic link was removed'
+[[ -L "$test_config/sway-noir/themes/rain/fuzzel/fuzzel.ini" ]] || fail 'symbolic link was removed'
 [[ -L "$test_config/sway-noir/gammastep/config.ini" ]] || fail 'dangling symbolic link was removed'
 assert_file "$test_config/sway-noir/personal.conf"
 [[ -L "$local_waybar" && "$(sha256sum < "$local_waybar")" == "$local_waybar_hash" ]] ||
@@ -444,26 +464,26 @@ assert_file "$test_config/sway-noir/themes/personal/theme.conf"
     fail 'uninstall removed the saved design'
 [[ ! -e "$test_config/sway-noir/themes/retro" ]] || fail 'empty bundled theme directory remained'
 [[ ! -e "$test_config/sway-noir/themes/praxis" ]] || fail 'empty Praxis theme directory remained'
-grep -Fq "Preserving modified or unverified profile file: $test_config/sway-noir/mako/config" \
+grep -Fq "Preserving modified or unverified profile file: $test_config/sway-noir/themes/rain/mako/config" \
     "$test_root/uninstall.log" || fail 'modified file was not reported'
-grep -Fq "Preserving symbolic link: $test_config/sway-noir/fuzzel/fuzzel.ini" \
+grep -Fq "Preserving symbolic link: $test_config/sway-noir/themes/rain/fuzzel/fuzzel.ini" \
     "$test_root/uninstall.log" || fail 'symbolic link was not reported'
 
 # The removal baseline is the installed release, not the current checkout.
 release_dir="$test_root/release with spaces"
 install -d "$release_dir"
-for path in install.sh dependencies.list start-sway-noir session sway swaylock waybar fuzzel mako gammastep systemd themes xdg-desktop-portal; do
+for path in install.sh dependencies.list start-sway-noir session sway waybar gammastep systemd themes xdg-desktop-portal; do
     cp -a -- "$repo_root/$path" "$release_dir/"
 done
 release_home="$test_root/release-home"
 release_config="$release_home/config"
 HOME="$release_home" XDG_CONFIG_HOME="$release_config" \
     "$release_dir/install.sh" --profile-only > "$test_root/release-install.log" 2>&1
-printf '\n# a later release\n' >> "$release_dir/mako/config"
+printf '\n# a later release\n' >> "$release_dir/themes/rain/mako/config"
 printf '\n# a later integration release\n' >> "$release_dir/systemd/user/sway-noir-session.target"
 HOME="$release_home" XDG_CONFIG_HOME="$release_config" \
     "$release_dir/install.sh" --uninstall --yes > "$test_root/release-uninstall.log" 2>&1
-[[ ! -e "$release_config/sway-noir/mako/config" ]] ||
+[[ ! -e "$release_config/sway-noir/themes/rain/mako/config" ]] ||
     fail 'unchanged installed file was compared against the newer checkout'
 [[ ! -e "$release_config/systemd/user/sway-noir-session.target" ]] ||
     fail 'unchanged installed integration was compared against the newer checkout'
@@ -474,20 +494,20 @@ HOME="$release_home" XDG_CONFIG_HOME="$release_config" \
 # happens to match the newer checkout.
 HOME="$release_home" XDG_CONFIG_HOME="$release_config" \
     "$release_dir/install.sh" --profile-only > "$test_root/repeat-install.log" 2>&1
-printf '\n# user change also present in a later checkout\n' >> "$release_dir/mako/config"
-cp -- "$release_dir/mako/config" "$release_config/sway-noir/mako/config"
+printf '\n# user change also present in a later checkout\n' >> "$release_dir/themes/rain/mako/config"
+cp -- "$release_dir/themes/rain/mako/config" "$release_config/sway-noir/themes/rain/mako/config"
 for _ in 1 2; do
     HOME="$release_home" XDG_CONFIG_HOME="$release_config" \
         "$release_dir/install.sh" --uninstall --yes > "$test_root/repeat-uninstall.log" 2>&1
-    assert_file "$release_config/sway-noir/mako/config"
+    assert_file "$release_config/sway-noir/themes/rain/mako/config"
 done
 
 # Legacy installs without a manifest err on the side of preserving files.
 rm -- "$legacy_config/sway-noir/.installed-files.sha256"
-printf '\n# legacy customization\n' >> "$legacy_config/sway-noir/mako/config"
+printf '\n# legacy customization\n' >> "$legacy_config/sway-noir/themes/rain/mako/config"
 HOME="$legacy_home" XDG_CONFIG_HOME="$legacy_config" \
     "$repo_root/install.sh" --uninstall --yes > "$test_root/legacy-uninstall.log" 2>&1
-assert_file "$legacy_config/sway-noir/mako/config"
+assert_file "$legacy_config/sway-noir/themes/rain/mako/config"
 [[ ! -e "$legacy_config/sway-noir/start-sway-noir" ]] ||
     fail 'unchanged legacy profile file remained'
 
@@ -495,11 +515,11 @@ assert_file "$legacy_config/sway-noir/mako/config"
 manifest_home="$test_root/manifest-home"
 manifest_config="$manifest_home/config"
 manifest="$manifest_config/sway-noir/.installed-files.sha256"
-install -D "$repo_root/mako/config" "$manifest_config/sway-noir/mako/config"
+install -D "$repo_root/themes/rain/mako/config" "$manifest_config/sway-noir/themes/rain/mako/config"
 ln -s "$test_root/nonexistent-manifest" "$manifest"
 HOME="$manifest_home" XDG_CONFIG_HOME="$manifest_config" \
     "$repo_root/install.sh" --uninstall --yes > "$test_root/manifest-uninstall.log" 2>&1
-assert_file "$manifest_config/sway-noir/mako/config"
+assert_file "$manifest_config/sway-noir/themes/rain/mako/config"
 [[ -L "$manifest" ]] || fail 'unmanaged manifest symlink was removed'
 if HOME="$manifest_home" XDG_CONFIG_HOME="$manifest_config" \
     "$repo_root/install.sh" --profile-only > "$test_root/manifest-install.log" 2>&1; then
@@ -512,20 +532,20 @@ for manifest_contents in incomplete invalid; do
     unsafe_home="$test_root/$manifest_contents-home"
     unsafe_config="$unsafe_home/config"
     unsafe_manifest="$unsafe_config/sway-noir/.installed-files.sha256"
-    install -D "$repo_root/mako/config" "$unsafe_config/sway-noir/mako/config"
+    install -D "$repo_root/themes/rain/mako/config" "$unsafe_config/sway-noir/themes/rain/mako/config"
     printf '# Managed by Sway Noir.\n' > "$unsafe_manifest"
     if [[ "$manifest_contents" == invalid ]]; then
-        printf 'invalid-checksum  mako/config\n' >> "$unsafe_manifest"
+        printf 'invalid-checksum  themes/rain/mako/config\n' >> "$unsafe_manifest"
     fi
     HOME="$unsafe_home" XDG_CONFIG_HOME="$unsafe_config" \
         "$repo_root/install.sh" --uninstall --yes > "$test_root/$manifest_contents-uninstall.log" 2>&1
-    assert_file "$unsafe_config/sway-noir/mako/config"
+    assert_file "$unsafe_config/sway-noir/themes/rain/mako/config"
 done
 
 linked_home="$test_root/linked-home"
 linked_config="$linked_home/config"
 linked_profile="$test_root/linked-profile"
-install -D "$repo_root/mako/config" "$linked_profile/mako/config"
+install -D "$repo_root/themes/rain/mako/config" "$linked_profile/themes/rain/mako/config"
 install -d "$linked_profile/waybar" "$linked_config"
 ln -s "$linked_profile" "$linked_config/sway-noir"
 if HOME="$linked_home" XDG_CONFIG_HOME="$linked_config" \
@@ -534,7 +554,7 @@ if HOME="$linked_home" XDG_CONFIG_HOME="$linked_config" \
 fi
 grep -Fq 'Refusing symbolic link in target directory path:' "$test_root/linked-uninstall.log" ||
     fail 'uninstall did not report the linked profile directory'
-assert_file "$linked_profile/mako/config"
+assert_file "$linked_profile/themes/rain/mako/config"
 [[ -L "$linked_config/sway-noir" && -d "$linked_profile/waybar" ]] ||
     fail 'uninstall traversed a linked profile directory'
 

@@ -132,7 +132,7 @@ class FedoraChanges(unittest.TestCase):
     def test_unrelated_paths(self):
         for path in (
             "README.md", "ASSETS.md", "tests/README.md", ".github/scripts/README.md",
-            "screenshots/rain.webp", "themes/praxis/wallpaper.png", "themes/rain/theme.conf",
+            "screenshots/rain.webp", "themes/praxis/wallpaper.jpg", "themes/rain/theme.conf",
             "waybar/config.jsonc", "sway/config.d/99-startup.conf", "session-other/config",
             "tests/theme-test.py", "tests/waybar-test.py", "tests/waybar_config.py", "tests/ci-test.py",
         ):

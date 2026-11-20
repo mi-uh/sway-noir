@@ -6,9 +6,9 @@ the maintainer, mi-uh. The exact underlying image model/version is not recorded.
 
 | Theme | Wallpaper | Lock-screen image |
 | --- | --- | --- |
-| Rain | [Wallpaper](sway/backgrounds/cozy-cyberpunk-room.png) | [Lock screen](swaylock/cozy-cyberpunk-room-lock.png) |
-| Retro | [Wallpaper](themes/retro/wallpaper.png) | [Lock screen](themes/retro/lock-screen.png) |
-| Praxis | [Wallpaper](themes/praxis/wallpaper.png) | [Lock screen](themes/praxis/lock-screen.png) |
+| Rain | [Wallpaper](themes/rain/wallpaper.jpg) | [Lock screen](themes/rain/lock-screen.jpg) |
+| Retro | [Wallpaper](themes/retro/wallpaper.jpg) | [Lock screen](themes/retro/lock-screen.jpg) |
+| Praxis | [Wallpaper](themes/praxis/wallpaper.jpg) | [Lock screen](themes/praxis/lock-screen.jpg) |
 
 The images in `screenshots/` show these bundled themes in use.
 

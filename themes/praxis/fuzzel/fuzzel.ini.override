@@ -1,4 +1,4 @@
-# Changes to the shared fuzzel/fuzzel.ini template.
+# Changes to Rain's fuzzel/fuzzel.ini.
 [main]
 anchor=center
 lines=7

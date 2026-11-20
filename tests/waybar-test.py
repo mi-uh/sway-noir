@@ -14,7 +14,7 @@ from waybar_config import load_jsonc, load_waybar_config
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIRECTORIES = (
-    "fuzzel", "gammastep", "mako", "session", "sway", "swaylock",
+    "gammastep", "session", "sway",
     "systemd", "themes", "waybar", "xdg-desktop-portal",
 )
 
@@ -85,7 +85,7 @@ class WaybarTests(unittest.TestCase):
         cls.configuration_texts = {}
         for directory in CONFIG_DIRECTORIES:
             for path in (REPO_ROOT / directory).rglob("*"):
-                if path.is_file() and path.suffix not in {".png", ".webp"}:
+                if path.is_file() and path.suffix not in {".jpg", ".png", ".webp"}:
                     cls.configuration_texts[path.relative_to(REPO_ROOT)] = path.read_text(
                         encoding="utf-8"
                     )
@@ -226,7 +226,7 @@ class WaybarTests(unittest.TestCase):
             self.assertNotIn(f'"{key}":', example)
 
     def test_theme_overrides_do_not_duplicate_shared_behavior(self):
-        for filename in ("waybar/config.jsonc", "themes/praxis/waybar/config.jsonc",
+        for filename in ("themes/rain/waybar/config.jsonc", "themes/praxis/waybar/config.jsonc",
                          "themes/retro/waybar/config.jsonc"):
             with self.subTest(path=filename):
                 config = load_jsonc(self.configuration_texts[Path(filename)])
@@ -275,13 +275,13 @@ class WaybarTests(unittest.TestCase):
 
     def test_font_fallback(self):
         self.assertRegex(
-            self.configuration_texts[Path("waybar/style.css")],
+            self.configuration_texts[Path("themes/rain/waybar/style.css")],
             r'font-family:\s*"\{\{font\}\}",\s*sans-serif\s*;',
         )
         self.assertIn("font=IBM Plex Sans", self.configuration_texts[Path("themes/rain/theme.conf")])
 
     def test_new_right_hand_modules_share_cpu_styling_in_every_theme(self):
-        for filename in ("waybar/style.css", "themes/praxis/waybar/style.css",
+        for filename in ("themes/rain/waybar/style.css", "themes/praxis/waybar/style.css",
                          "themes/retro/waybar/style.css"):
             with self.subTest(path=filename):
                 css = self.configuration_texts[Path(filename)]

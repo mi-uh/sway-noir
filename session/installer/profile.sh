@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Profile installation, ownership and retired themes; sourced by install.sh.
+# Profile installation, ownership and retired files; sourced by install.sh.
 # shellcheck disable=SC2154
 
 files_equal() {
@@ -124,47 +124,52 @@ integration_file_is_unmodified() {
     fi
 }
 
-collect_obsolete_theme_files() {
+collect_obsolete_profile_files() {
     local checksum relative_path actual_checksum
 
-    # The previous manifest, never a theme name, proves ownership.
+    # The previous manifest, never a file name, proves ownership. Files that this
+    # release no longer registers are retired; personal files are never listed.
     [[ -f "$profile_manifest" && ! -L "$profile_manifest" ]] &&
         has_managed_marker "$profile_manifest" || return 0
     while read -r checksum relative_path; do
-        [[ "$checksum" =~ ^[[:xdigit:]]{64}$ && "$relative_path" == themes/* &&
+        [[ "$checksum" =~ ^[[:xdigit:]]{64}$ && -n "$relative_path" && "$relative_path" != /* &&
            "/$relative_path/" != */../* && "/$relative_path/" != */./* ]] || continue
-        [[ ! -e "$setup_dir/$relative_path" && -f "$profile_root/$relative_path" ]] || continue
+        case "$relative_path" in
+            # Integration files are verified separately; personal files are never retired.
+            external:*|system:*|sway/config.d/99-local.conf|waybar/local.jsonc|.installed-files.sha256) continue ;;
+        esac
+        [[ -z "${files[$relative_path.source]:-}" && -f "$profile_root/$relative_path" ]] || continue
         if profile_path_has_symlink "$relative_path"; then continue; fi
         actual_checksum="$(sha256sum < "$profile_root/$relative_path")" || continue
         if [[ "${actual_checksum%% *}" != "$checksum" ]]; then
-            warn "Preserving modified obsolete theme file: $profile_root/$relative_path"
+            warn "Preserving modified obsolete file: $profile_root/$relative_path"
             continue
         fi
-        obsolete_theme_files+=("$relative_path")
-        obsolete_theme_checksums+=("$checksum")
+        obsolete_profile_files+=("$relative_path")
+        obsolete_profile_checksums+=("$checksum")
     done < "$profile_manifest"
 }
 
-remove_obsolete_theme_files() {
+remove_obsolete_profile_files() {
     local index relative_path target_path actual_checksum directory
 
-    for index in "${!obsolete_theme_files[@]}"; do
-        relative_path="${obsolete_theme_files[$index]}"
+    for index in "${!obsolete_profile_files[@]}"; do
+        relative_path="${obsolete_profile_files[$index]}"
         target_path="$profile_root/$relative_path"
         # Recheck before deletion; files may change after preflight.
         if profile_path_has_symlink "$relative_path" || [[ ! -f "$target_path" ]]; then
-            warn "Preserving changed obsolete theme path: $target_path"
+            warn "Preserving changed obsolete path: $target_path"
             continue
         fi
         actual_checksum="$(sha256sum < "$target_path")" || die "Could not check $target_path"
-        if [[ "${actual_checksum%% *}" != "${obsolete_theme_checksums[$index]}" ]]; then
-            warn "Preserving modified obsolete theme file: $target_path"
+        if [[ "${actual_checksum%% *}" != "${obsolete_profile_checksums[$index]}" ]]; then
+            warn "Preserving modified obsolete file: $target_path"
             continue
         fi
         backup_file "$target_path" "sway-noir/$relative_path"
-        run "Could not remove obsolete theme file: $target_path" rm -- "$target_path"
+        run "Could not remove obsolete file: $target_path" rm -- "$target_path"
         directory="${target_path%/*}"
-        while [[ "$directory" == "$profile_root/themes/"* ]]; do
+        while [[ "$directory" == "$profile_root/"* ]]; do
             rmdir -- "$directory" 2>/dev/null || break
             directory="${directory%/*}"
         done

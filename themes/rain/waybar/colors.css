@@ -1,4 +1,4 @@
-/* Theme palette; session/theme renders these tokens next to style.css. */
+/* Palette shared by all themes; rendered next to style.css. */
 @define-color bg {{bg}};
 @define-color surface {{surface}};
 @define-color surface_alt {{surface_alt}};

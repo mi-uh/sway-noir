@@ -1,4 +1,4 @@
-# Changes to the shared mako/config template.
+# Changes to Rain's mako/config.
 font={{font}} 11
 background-color={{bg}}fa
 padding=16

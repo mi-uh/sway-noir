@@ -39,7 +39,7 @@ preflight_installation() {
 
     validate_target_directories
     validate_profile_targets
-    collect_obsolete_theme_files
+    collect_obsolete_profile_files
     configure_portal_integration
 
     for id in "${external_files[@]}"; do
