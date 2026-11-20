@@ -37,6 +37,10 @@ def status_declarations(css, module):
     css = re.sub(r"@(?:define-color|import)\b[^;]+;", "", css)
     supported = {"*": (0, 0, 0), ".modules-right > widget > *": (0, 1, 1),
                  f"#{module}": (1, 0, 0)}
+    # The tested layouts all start with pulseaudio and end with clock.
+    position = {"pulseaudio": "first-child", "clock": "last-child"}.get(module)
+    if position:
+        supported[f"window#waybar .modules-right > widget:{position} > *"] = (1, 2, 2)
     matches = []
     for order, (selectors, body) in enumerate(re.findall(r"([^{}]+)\{([^{}]*)\}", css)):
         specificity = [supported[selector.strip()] for selector in selectors.split(",")

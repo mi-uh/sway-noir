@@ -21,8 +21,8 @@
     "on-click": "\"$SWAY_NOIR_DIR/session/optional-command\" --shell audio-settings \"${SWAY_NOIR_AUDIO_SETTINGS_COMMAND-pavucontrol}\""
   },
   "network": {
-    "tooltip-format-wifi": "{essid} - {ipaddr}/{cidr}",
-    "tooltip-format-ethernet": "{ifname} - {ipaddr}/{cidr}",
+    "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
+    "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
     "tooltip-format-disconnected": "Disconnected"
   },
   "cpu": {"interval": 3, "tooltip": false},

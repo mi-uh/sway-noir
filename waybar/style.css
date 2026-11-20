@@ -114,10 +114,16 @@ window#waybar.empty #window {
     padding: 0 5px;
 }
 
-/* Round the outside of each output's joined status capsule. */
-#pulseaudio {
+/* Round the outside of each output's joined status capsule, whichever visible
+ * modules come first and last. The ID keeps these above module rules. */
+window#waybar .modules-right > widget:first-child > * {
     border-left: 1px solid alpha(@accent, 0.95);
     border-radius: {{bar_radius}}px 0 0 {{bar_radius}}px;
+}
+
+window#waybar .modules-right > widget:last-child > * {
+    border-right: 1px solid alpha(@accent, 0.95);
+    border-radius: 0 {{bar_radius}}px {{bar_radius}}px 0;
 }
 
 #pulseaudio.muted,
@@ -131,8 +137,6 @@ window#waybar.empty #window {
 }
 
 #clock {
-    border-right: 1px solid alpha(@accent, 0.95);
-    border-radius: 0 {{bar_radius}}px {{bar_radius}}px 0;
     font-weight: 600;
     padding-left: 12px;
     padding-right: 12px;
