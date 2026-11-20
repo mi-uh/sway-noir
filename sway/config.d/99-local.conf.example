@@ -42,3 +42,14 @@
 # output DP-1 position 1920 0 scale 1.25
 # workspace 1 output eDP-1
 # workspace 6 output DP-1
+
+# Display performance. List modes with: swaymsg -t get_outputs
+# Sway may start at 60 Hz even if the monitor supports more:
+# output DP-1 mode 2560x1440@144Hz
+# Variable refresh rate (VRR/FreeSync); can flicker on some monitors:
+# output DP-1 adaptive_sync on
+# Allow tearing for fullscreen games that request it (lower latency):
+# output DP-1 allow_tearing yes
+# for_window [app_id="steam_app_.*"] allow_tearing yes
+# Lower input latency; too low values drop frames. Test values step by step:
+# output DP-1 max_render_time 4
