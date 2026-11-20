@@ -7,8 +7,12 @@ readonly state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 readonly state_dir="$state_home/sway-noir"
 readonly current="$state_dir/current"
 readonly default_theme=rain
-readonly -a outputs=(sway.conf waybar/base.jsonc waybar/config.jsonc waybar/local.jsonc waybar/theme.jsonc waybar/style.css fuzzel/fuzzel.ini mako/config swaylock/config)
+readonly -a outputs=(sway.conf waybar/base.jsonc waybar/config.jsonc waybar/local.jsonc waybar/theme.jsonc waybar/colors.css waybar/style.css fuzzel/fuzzel.ini mako/config swaylock/config)
+# Flat key=value templates may be adjusted by OUTPUT.override files.
+readonly -a mergeable_outputs=(fuzzel/fuzzel.ini mako/config swaylock/config)
+readonly max_inheritance_depth=8
 declare -A values=()
+theme_chain=()
 generation=""
 link_path=""
 
@@ -32,6 +36,12 @@ read_theme() {
             gaps_inner|gaps_outer|border_width|radius|bar_radius|bar_button_radius|bar_margin_top|bar_margin_bottom)
                 [[ "$value" =~ ^(0|[1-9][0-9]?)$ ]] || die "Invalid size $key in $file (expected 0..99)"
                 ;;
+            font_size|bar_font_size)
+                [[ "$value" =~ ^[1-9][0-9]?$ ]] || die "Invalid size $key in $file (expected 1..99)"
+                ;;
+            inherits)
+                valid_id "$value" || die "Invalid inherits in $file"
+                ;;
             bar_position)
                 [[ "$value" == top || "$value" == bottom ]] || die "Invalid bar_position in $file"
                 ;;
@@ -49,12 +59,37 @@ read_theme() {
     done < "$file"
 }
 
+theme_parent() {
+    local line parent=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" != inherits=* ]] || parent="${line#inherits=}"
+    done < "$1"
+    printf '%s\n' "${parent:-$default_theme}"
+}
+
 load_theme() {
-    local id="$1" key
+    local id="$1" key theme seen index file
     valid_id "$id" || die "Invalid theme ID: $id"
+    # Resolve id -> inherits -> ... -> Rain; Rain supplies every default.
+    theme_chain=()
+    theme="$id"
+    while true; do
+        valid_id "$theme" || die "Invalid parent theme ID: $theme"
+        for seen in "${theme_chain[@]}"; do
+            [[ "$seen" != "$theme" ]] || die "Theme inheritance cycle at $theme"
+        done
+        (( ${#theme_chain[@]} < max_inheritance_depth )) || die "Theme inheritance of $id is too deep"
+        file="$profile_dir/themes/$theme/theme.conf"
+        [[ -f "$file" ]] || die "Missing theme: $file"
+        theme_chain+=("$theme")
+        [[ "$theme" != "$default_theme" ]] || break
+        theme="$(theme_parent "$file")"
+    done
     values=()
-    read_theme "$profile_dir/themes/$default_theme/theme.conf"
-    [[ "$id" == "$default_theme" ]] || read_theme "$profile_dir/themes/$id/theme.conf"
+    for (( index = ${#theme_chain[@]} - 1; index >= 0; index-- )); do
+        read_theme "$profile_dir/themes/${theme_chain[index]}/theme.conf"
+    done
+    unset 'values[inherits]'
     for key in bg surface surface_alt border accent accent_surface urgent text muted input selection selection_text; do
         values["${key}_hex"]="${values[$key]#\#}"
     done
@@ -107,8 +142,83 @@ list_themes() {
     done
 }
 
+is_mergeable() {
+    local output
+    for output in "${mergeable_outputs[@]}"; do [[ "$output" != "$1" ]] || return 0; done
+    return 1
+}
+
+# Append unused overrides of a section after its last non-empty line. Uses the
+# caller's lines, order, overrides and used variables.
+flush_override_section() {
+    local section_name="$1" entry
+    local -a trailing=()
+    while (( ${#lines[@]} > 0 )) && [[ -z "${lines[-1]}" ]]; do
+        trailing+=("")
+        unset 'lines[-1]'
+    done
+    for entry in "${order[@]}"; do
+        [[ "${entry%%$'\x1f'*}" == "$section_name" && -z "${used[$entry]+set}" ]] || continue
+        lines+=("${entry#*$'\x1f'}=${overrides[$entry]}")
+        used["$entry"]=1
+    done
+    lines+=("${trailing[@]}")
+}
+
+# Replace or add key=value lines from an override file in the given template,
+# keeping the template's order and [section] structure.
+apply_override() {
+    local file="$1" line section="" key name stored
+    local -A overrides=() used=()
+    local -a order=() lines=()
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == [\#\;]* ]] && continue
+        if [[ "$line" =~ ^\[([^][]+)\]$ ]]; then
+            section="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^([[:alnum:]_.-]+)=(.*)$ ]]; then
+            key="$section"$'\x1f'"${BASH_REMATCH[1]}"
+            [[ -n "${overrides[$key]+set}" ]] || order+=("$key")
+            overrides["$key"]="${BASH_REMATCH[2]}"
+        else
+            die "Expected key=value or [section] in $file"
+        fi
+    done < "$file"
+
+    section=""
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^\[([^][]+)\]$ ]]; then
+            flush_override_section "$section"
+            section="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^([[:alnum:]_.-]+)= ]]; then
+            name="${BASH_REMATCH[1]}"
+            key="$section"$'\x1f'"$name"
+            if [[ -n "${overrides[$key]+set}" ]]; then
+                line="$name=${overrides[$key]}"
+                used["$key"]=1
+            fi
+        fi
+        lines+=("$line")
+    done <<< "$content"
+    flush_override_section "$section"
+
+    # Sections that the template does not define are added at the end.
+    for key in "${order[@]}"; do
+        [[ -z "${used[$key]+set}" ]] || continue
+        section="${key%%$'\x1f'*}"
+        lines+=("" "[$section]")
+        for stored in "${order[@]}"; do
+            [[ "${stored%%$'\x1f'*}" == "$section" ]] || continue
+            lines+=("${stored#*$'\x1f'}=${overrides[$stored]}")
+            used["$stored"]=1
+        done
+    done
+    content="$(printf '%s\n' "${lines[@]}")"
+}
+
 render() {
-    local id="$1" bar_position="$2" output source content key token margin_top
+    local id="$1" bar_position="$2" output source content key token margin_top theme override
+    local -a template_overrides
     if [[ "$bar_position" != default && "$bar_position" != "${values[bar_position]}" ]]; then
         # Mirror vertical spacing when moving the bar to the opposite edge.
         margin_top="${values[bar_margin_top]}"
@@ -125,11 +235,23 @@ render() {
             continue
         fi
         [[ "$output" != sway.conf ]] || source="$profile_dir/themes/sway.conf"
-        if [[ "$output" != waybar/local.jsonc && -f "$profile_dir/themes/$id/$output" ]]; then
-            source="$profile_dir/themes/$id/$output"
+        # The nearest complete template wins; nearer overrides apply last.
+        template_overrides=()
+        if [[ "$output" != waybar/local.jsonc ]]; then
+            for theme in "${theme_chain[@]}"; do
+                if [[ -f "$profile_dir/themes/$theme/$output" ]]; then
+                    source="$profile_dir/themes/$theme/$output"
+                    break
+                fi
+                override="$profile_dir/themes/$theme/$output.override"
+                if is_mergeable "$output" && [[ -f "$override" ]]; then
+                    template_overrides=("$override" "${template_overrides[@]}")
+                fi
+            done
         fi
         [[ -f "$source" ]] || die "Missing template: $source"
         content="$(< "$source")"
+        for override in "${template_overrides[@]}"; do apply_override "$override"; done
         # Bash 5.2's optional replacement expansion must not treat '&' as code.
         shopt -u patsub_replacement 2>/dev/null || true
         for key in "${!values[@]}"; do
@@ -184,6 +306,10 @@ activate() {
         id="$(selected_id)"
         if [[ ! -f "$profile_dir/themes/$id/theme.conf" ]]; then
             warn "Saved theme $id is missing; using Rain."
+            id="$default_theme"
+        elif (( $# < 3 )) && ! reply="$(load_theme "$id" 2>&1)"; then
+            # Login must not fail because a personal theme became invalid.
+            warn "Saved theme $id is invalid; using Rain. ${reply#Theme error: }"
             id="$default_theme"
         fi
     fi
@@ -273,11 +399,21 @@ case "${1:-select}" in
         # Display labels, but select by index so names cannot become commands.
         ids=()
         labels=()
+        invalid=()
         while IFS= read -r id; do
-            load_theme "$id"
-            ids+=("$id")
-            labels+=("${values[name]} ($id)")
+            # One broken personal theme must not hide the whole menu.
+            if label="$(load_theme "$id" 2>&1 && printf '%s (%s)' "${values[name]}" "$id")"; then
+                ids+=("$id")
+                labels+=("$label")
+            else
+                invalid+=("$label")
+            fi
         done < <(list_themes)
+        if (( ${#invalid[@]} > 0 )); then
+            printf '%s\n' "${invalid[@]}" >&2
+            swaynag -t warning -m 'Skipped invalid themes. See details below.' \
+                --detailed-message <<< "$(printf '%s\n' "${invalid[@]}")" >/dev/null 2>&1 &
+        fi
         position="$(selected_bar_position)"
         labels+=("Waybar position: $(bar_position_label "$position")")
         if ! index="$(printf '%s\n' "${labels[@]}" | fuzzel --dmenu --index \

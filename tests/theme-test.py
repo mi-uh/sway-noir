@@ -133,7 +133,7 @@ class Themes(unittest.TestCase):
                       (self.current / "sway.conf").read_text())
         self.assertIn(f"image={self.profile}/themes/retro/lock-screen.png",
                       (self.current / "swaylock/config").read_text())
-        self.assertIn("@define-color accent #68b884", (self.current / "waybar/style.css").read_text())
+        self.assertIn("@define-color accent #68b884;", (self.current / "waybar/colors.css").read_text())
         log = self.log.read_text()
         self.assertIn("validate --validate --config", log)
         self.assertIn("swaymsg -r reload", log)
@@ -549,7 +549,7 @@ class Themes(unittest.TestCase):
     def test_retro_active_workspace_uses_a_subdued_highlight(self):
         self.run_theme("set", "retro", "--no-reload")
         css = (self.current / "waybar/style.css").read_text()
-        self.assertIn("@define-color accent_surface #1b3325;", css)
+        self.assertIn("@define-color accent_surface #1b3325;", (self.current / "waybar/colors.css").read_text())
         self.assertIn("#workspaces button.focused,\n#workspaces button.active {", css)
         active_style = css.split("#workspaces button.active {", 1)[1].split("}", 1)[0]
         self.assertIn("color: @text;", active_style)
@@ -616,7 +616,7 @@ class Themes(unittest.TestCase):
                         self.assertEqual(labels[0].get("size"), "small")
                         self.assertEqual(labels[1].get("weight"), "semibold")
         css = (self.current / "waybar/style.css").read_text()
-        self.assertIn('@define-color accent #d5b36a;', css)
+        self.assertIn('@define-color accent #d5b36a;', (self.current / "waybar/colors.css").read_text())
         self.assertIn('font-family: "IBM Plex Sans", sans-serif;', css)
         active_style = css.split("#workspaces button.active {", 1)[1].split("}", 1)[0]
         self.assertIn("background: @accent_surface;", active_style)
@@ -693,6 +693,147 @@ class Themes(unittest.TestCase):
         self.run_theme("set", "bad", "--no-reload", success=False)
         self.assertEqual(self.current.resolve(), original)
         self.assert_complete()
+
+    def test_menu_skips_invalid_personal_themes_and_warns(self):
+        self.script("swaynag", 'cat > "$THEME_LOG.warning"\nprintf "%s\\n" "$@" >> "$THEME_LOG.warning"\n')
+        self.run_theme("init")
+        broken = self.profile / "themes/broken"
+        broken.mkdir()
+        (broken / "theme.conf").write_text("name=Broken\naccent=red\n")
+        orphan = self.profile / "themes/orphan"
+        orphan.mkdir()
+        (orphan / "theme.conf").write_text("name=Orphan\ninherits=missing\n")
+        result = self.run_theme("select", MENU_INDEX="2")
+        menu = Path(str(self.log) + ".menu").read_text().splitlines()
+        self.assertEqual(menu[:3], ["Praxis (praxis)", "Rain (rain)", "Retro (retro)"])
+        self.assertEqual(len(menu), 4)
+        self.assertEqual(self.run_theme("current").stdout, "retro\n")
+        self.assertIn("Invalid color accent", result.stderr)
+        self.assertIn("Missing theme", result.stderr)
+        warning = Path(str(self.log) + ".warning")
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if warning.exists() and "Skipped invalid themes" in warning.read_text():
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("Theme menu did not warn about invalid themes")
+        self.assertIn("Invalid color accent", warning.read_text())
+        self.assert_complete()
+
+    def test_login_falls_back_to_rain_when_saved_theme_became_invalid(self):
+        personal = self.profile / "themes/personal"
+        personal.mkdir()
+        (personal / "theme.conf").write_text("name=Personal\naccent=#6688aa\n")
+        self.run_theme("set", "personal", "--no-reload")
+        (personal / "theme.conf").write_text("name=Personal\naccent=blue\n")
+        result = self.run_theme("init")
+        self.assertIn("Saved theme personal is invalid; using Rain.", result.stderr)
+        self.assertIn("Invalid color accent", result.stderr)
+        self.assertEqual(self.run_theme("current").stdout, "rain\n")
+        self.assert_complete()
+        # Explicit changes still report errors instead of silently switching.
+        self.run_theme("set", "personal", "--no-reload", success=False)
+        self.assertEqual(self.run_theme("current").stdout, "rain\n")
+
+    def test_personal_theme_inherits_values_templates_and_overrides(self):
+        child = self.profile / "themes/brass"
+        (child / "swaylock").mkdir(parents=True)
+        (child / "theme.conf").write_text("name=Brass\ninherits=praxis\naccent=#c08a3e\nbar_font_size=14\n")
+        (child / "swaylock/config.override").write_text("# Thinner ring.\nindicator-radius=40\n")
+        self.run_theme("set", "brass", "--no-reload")
+        self.assert_complete()
+        sway = (self.current / "sway.conf").read_text()
+        self.assertIn("set $accent    #c08a3e", sway)
+        self.assertIn("set $bg        #0c0e0d", sway)
+        self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.png"', sway)
+        config = load_waybar_config(self.current / "waybar/config.jsonc")
+        self.assertEqual((config["position"], config["height"]), ("bottom", 36))
+        css = (self.current / "waybar/style.css").read_text()
+        self.assertIn("A continuous carbon rail", css)
+        self.assertIn("font-size: 14px;", css)
+        self.assertIn("@define-color accent #c08a3e;", (self.current / "waybar/colors.css").read_text())
+        launcher = (self.current / "fuzzel/fuzzel.ini").read_text()
+        self.assertIn("width=48", launcher)
+        self.assertIn("match=c08a3eff", launcher)
+        lock = (self.current / "swaylock/config").read_text()
+        # The child's override applies after Praxis' override.
+        self.assertIn("indicator-radius=40", lock)
+        self.assertNotIn("indicator-radius=60", lock)
+        self.assertIn("indicator-thickness=2", lock)
+        self.assertIn(f"image={self.profile}/themes/praxis/lock-screen.png", lock)
+        self.run_theme("select", MENU_STATUS="1")
+        self.assertIn("Brass (brass)", Path(str(self.log) + ".menu").read_text())
+
+    def test_complete_child_template_replaces_inherited_overrides(self):
+        child = self.profile / "themes/plain"
+        (child / "swaylock").mkdir(parents=True)
+        (child / "theme.conf").write_text("name=Plain\ninherits=praxis\n")
+        (child / "swaylock/config").write_text("color={{bg_hex}}\n")
+        self.run_theme("set", "plain", "--no-reload")
+        lock = (self.current / "swaylock/config").read_text()
+        self.assertTrue(lock.startswith("color=0c0e0d\n"))
+        self.assertNotIn("indicator-radius", lock)
+
+    def test_overrides_keep_sections_and_add_new_ones(self):
+        theme = self.profile / "themes/notify"
+        (theme / "mako").mkdir(parents=True)
+        (theme / "fuzzel").mkdir()
+        (theme / "theme.conf").write_text("name=Notify\n")
+        (theme / "mako/config.override").write_text(
+            "width=420\n\n[urgency=high]\ndefault-timeout=9000\n\n[app-name=Firefox]\ninvisible=1\n")
+        (theme / "fuzzel/fuzzel.ini.override").write_text("[colors]\nbackground={{surface_hex}}ff\nnew-key=1\n")
+        self.run_theme("set", "notify", "--no-reload")
+        self.assert_complete()
+        mako = (self.current / "mako/config").read_text()
+        self.assertIn("width=420\n", mako)
+        self.assertNotIn("width=360", mako)
+        high = mako.split("[urgency=high]\n", 1)[1].split("\n\n", 1)[0]
+        self.assertEqual(high.splitlines(), ["border-color=#d95763ff", "default-timeout=9000"])
+        self.assertTrue(mako.endswith("\n[app-name=Firefox]\ninvisible=1\n"))
+        launcher = (self.current / "fuzzel/fuzzel.ini").read_text()
+        colors = launcher.split("[colors]\n", 1)[1].split("\n\n", 1)[0].splitlines()
+        self.assertIn("background=171a1dff", colors)
+        self.assertEqual(colors[-1], "new-key=1")
+
+    def test_invalid_inheritance_and_overrides_do_not_change_current(self):
+        self.run_theme("init")
+        original = self.current.resolve()
+        loop_a = self.profile / "themes/loop-a"
+        loop_b = self.profile / "themes/loop-b"
+        loop_a.mkdir()
+        loop_b.mkdir()
+        (loop_a / "theme.conf").write_text("name=A\ninherits=loop-b\n")
+        (loop_b / "theme.conf").write_text("name=B\ninherits=loop-a\n")
+        result = self.run_theme("set", "loop-a", "--no-reload", success=False)
+        self.assertIn("inheritance cycle", result.stderr)
+        for content in ("inherits=missing", "inherits=../rain", "inherits=Rain"):
+            (loop_a / "theme.conf").write_text(content + "\n")
+            self.run_theme("set", "loop-a", "--no-reload", success=False)
+        (loop_a / "theme.conf").write_text("name=A\n")
+        (loop_a / "mako").mkdir()
+        (loop_a / "mako/config.override").write_text("not an assignment\n")
+        result = self.run_theme("set", "loop-a", "--no-reload", success=False)
+        self.assertIn("Expected key=value", result.stderr)
+        (loop_a / "mako/config.override").write_text("font={{missing}}\n")
+        self.run_theme("set", "loop-a", "--no-reload", success=False)
+        for content in ("font_size=0", "bar_font_size=100", "font_size=x"):
+            (loop_a / "mako/config.override").unlink(missing_ok=True)
+            (loop_a / "theme.conf").write_text(content + "\n")
+            self.run_theme("set", "loop-a", "--no-reload", success=False)
+        self.assertEqual(self.current.resolve(), original)
+        self.assert_complete()
+
+    def test_font_sizes_follow_theme_values(self):
+        theme = self.profile / "themes/large"
+        theme.mkdir()
+        (theme / "theme.conf").write_text("name=Large\nfont_size=13\nbar_font_size=15\n")
+        self.run_theme("set", "large", "--no-reload")
+        self.assertIn("font pango:IBM Plex Sans 13", (self.current / "sway.conf").read_text())
+        self.assertIn("font=IBM Plex Sans 13", (self.current / "mako/config").read_text())
+        self.assertIn("font-size: 15px;", (self.current / "waybar/style.css").read_text())
+        self.run_theme("set", "retro", "--no-reload")
+        self.assertIn("font-size: 11px;", (self.current / "waybar/style.css").read_text())
 
     def test_foreign_session_is_rejected(self):
         for environment in ({"SWAYSOCK": ""}, {"SWAY_NOIR_SESSION_ID": "invalid"}, {"SWAY_NOIR_THEME_DIR": "/foreign"}):

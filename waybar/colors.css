@@ -1,0 +1,10 @@
+/* Theme palette; session/theme renders these tokens next to style.css. */
+@define-color bg {{bg}};
+@define-color surface {{surface}};
+@define-color surface_alt {{surface_alt}};
+@define-color border {{border}};
+@define-color accent {{accent}};
+@define-color accent_surface {{accent_surface}};
+@define-color urgent {{urgent}};
+@define-color text {{text}};
+@define-color muted {{muted}};

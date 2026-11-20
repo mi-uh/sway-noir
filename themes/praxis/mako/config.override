@@ -1,0 +1,7 @@
+# Changes to the shared mako/config template.
+font={{font}} 11
+background-color={{bg}}fa
+padding=16
+max-visible=3
+icons=0
+format=<span size="small" foreground="{{accent}}">%a</span>\n<b>%s</b>\n%b
