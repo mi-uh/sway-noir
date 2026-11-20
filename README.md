@@ -1,84 +1,44 @@
 # Sway Noir
 
-A standalone Sway profile with matching desktop themes and Vim-style navigation.
+A standalone Sway profile with matching themes and Vim-style navigation.
 
-## Screenshots
-
-**Praxis**
-
-![Praxis desktop with gold accents, bottom status bar and theme menu](screenshots/praxis.webp)
-
-**Rain (default)**
-
-![Rain desktop with burgundy accents, floating top bar and theme menu](screenshots/rain.webp)
-
-**Retro**
-
-![Retro desktop with green monospace text, bottom status bar and theme menu](screenshots/retro.webp)
+| Praxis | Rain (default) | Retro |
+| --- | --- | --- |
+| ![Praxis: gold accents, bottom bar](screenshots/praxis.webp) | ![Rain: burgundy accents, floating top bar](screenshots/rain.webp) | ![Retro: green monospace, bottom bar](screenshots/retro.webp) |
 
 ## Install
 
-Tested on Fedora 44 and Fedora 45 Atomic.
-Other distributions are currently untested.
-
-Run the following steps as a **non-root user**.
-
-### 1. Download Sway Noir
+**Prerequisites:** Fedora 44 or Fedora 45 Atomic (other distributions are
+untested), a **non-root** user, and the cloned repository as working directory.
 
 ```bash
 git clone https://github.com/mi-uh/sway-noir.git
 cd sway-noir
-```
-
-### 2. Check required software
-
-```bash
-./install.sh --check-deps
-```
-
-The check reports missing software and prints suggested installation commands.
-It does not install anything. Install the missing **required packages**, then
-run the check again. **Optional packages** add [extra features](#optional-features)
-and can be skipped.
-
-**Fedora Atomic:** Reboot after installing packages before repeating the check.
-
-Once the check passes, continue with installation.
-
-### 3. Install Sway Noir
-
-```bash
+./install.sh --check-deps   # reports missing packages; changes nothing
 ./install.sh
 ```
 
-The installer asks whether to add Sway Noir to your login screen and enable
-dark mode for applications in your user account. You can also choose directly:
+Install the missing **required** packages and repeat the check; optional packages
+enable [extra features](#optional-features). **Fedora Atomic:** reboot after
+installing packages.
 
-| Command | Purpose |
+| Option | Effect |
 | --- | --- |
-| `./install.sh --profile-only` | Install without optional changes or prompts |
-| `./install.sh --login-session` | Install profile and login-screen entry for GDM or SDDM; requires `sudo` |
-| `./install.sh --set-dark-mode` | Install profile and enable dark mode for applications in your user account |
-| `./install.sh --list-deps` | List required and optional software |
-| `./install.sh --check-deps --set-dark-mode` | Check required software, including dark-mode support; no changes |
+| `--profile-only` | Install without prompts or optional changes |
+| `--login-session` | Add a login-screen entry for GDM or SDDM; **requires `sudo`** |
+| `--set-dark-mode` | Enable dark mode for applications in your user account |
+| `--list-deps` | List required and optional software |
 
-Automatic login-screen integration supports GDM and SDDM only. For other login
-managers, use `--profile-only` and add the session entry manually.
+Replaced files are backed up in `~/.config/sway-setup-backups`. For other login
+managers, add the session entry manually.
 
-### File safety
+## Start
 
-Files replaced during installation or updates are backed up in
-`~/.config/sway-setup-backups`.
-
-## Start and control the desktop
-
-Select **Sway Noir** on your login screen, or start it from a text console:
+Select **Sway Noir** on the login screen, or run from a text console:
 
 ```bash
 ~/.config/sway-noir/start-sway-noir
 ```
-
-### Keyboard shortcuts
 
 | Shortcut | Action |
 | --- | --- |
@@ -86,240 +46,133 @@ Select **Sway Noir** on your login screen, or start it from a text console:
 | `Super+h/j/k/l` | Focus window |
 | `Super+Shift+h/j/k/l` | Move window |
 | `Super+r` | Resize mode |
-| `Super+1..0` | Workspace |
-| `Super+n` / `Super+p` | Next / previous workspace |
-| `Super+Shift+t` | Theme menu; Escape cancels |
+| `Super+1..0` / `Super+n` / `Super+p` | Workspace / next / previous |
+| `Super+Shift+t` | Theme and Waybar position menu |
+| `Super+Shift+c` | Reload configuration |
 | `Super+Shift+x` / `Super+Shift+e` | Lock / exit |
 | `Print` / `Shift+Print` | Region / full screenshot |
 
-### Switch themes
+## Themes
 
-Press **Super+Shift+t** and select a theme. Your applications stay open.
-If switching fails, an error is shown and the previous theme is kept.
+**Super+Shift+t** switches themes without closing applications; a failed switch
+keeps the previous theme. The same menu pins Waybar to the top or bottom edge
+or restores the theme default. Both choices persist across logins.
 
-The same menu has a **Waybar position** entry:
-
-- **Theme default:** Rain places the bar at the top; Praxis and Retro at the bottom.
-- **Always top** / **Always bottom:** keep the bar at that edge, regardless of theme.
-
-The selected option is marked in the position submenu. Escape cancels without
-changing anything. Your choice survives theme changes and logging out/in.
-Vertical margins follow the bar when its position changes.
-
-Inside Sway Noir, you can also use these terminal commands:
+Terminal commands inside Sway Noir; add `--no-reload` to `set` or
+`bar-position` to save a choice for the next login instead:
 
 ```bash
-# List available themes
 ~/.config/sway-noir/session/theme list
-# Show the selected theme
-~/.config/sway-noir/session/theme current
-# Switch to Praxis
 ~/.config/sway-noir/session/theme set praxis
-# Show the saved Waybar preference (default, top or bottom)
-~/.config/sway-noir/session/theme bar-position
-# Always place Waybar at the top
-~/.config/sway-noir/session/theme bar-position top
-# Restore each theme's default position
-~/.config/sway-noir/session/theme bar-position default
+~/.config/sway-noir/session/theme bar-position top   # default, top or bottom
 ```
 
-Replace `praxis` with `rain`, `retro` or the name of your own theme.
-Use `bar-position bottom` to pin the bar to the bottom. Add `--no-reload` to
-`set ID` or `bar-position VALUE` to save a choice outside Sway Noir for the next login.
+## Personal settings
 
-## Customize
+All personal files live below `~/.config/sway-noir/`. **Updates and uninstall
+keep them**; managed files there are replaced on update.
 
-### Personal settings
+| Purpose | File | Apply with |
+| --- | --- | --- |
+| Keyboard, monitors, bindings, display performance | `sway/config.d/99-local.conf` ([example](sway/config.d/99-local.conf.example)) | `Super+Shift+c` |
+| Startup programs, audio-settings command | `sway/config.d/99-local.conf` | Log out and in |
+| Waybar modules and options | `waybar/local.jsonc` ([example](waybar/local.jsonc.example)) | Reselect the theme |
+| Own themes | `themes/ID/` | Theme menu |
 
-Change keyboard shortcuts, monitor settings and startup programs in
-`~/.config/sway-noir/sway/config.d/99-local.conf`. This file is kept during
-updates. See [99-local.conf.example](sway/config.d/99-local.conf.example) for examples.
+Never edit generated files in `~/.local/state/sway-noir/current/`.
 
-Press **Super+Shift+c** to apply keyboard and monitor changes. After changing
-startup programs or the audio-settings command, log out and back in.
+### Waybar
 
-### Optional features
-
-| Feature | Required software |
-| --- | --- |
-| Volume keys | `wpctl` with PipeWire and WirePlumber |
-| Audio settings | `pavucontrol` – opens when you click the volume display |
-| Screenshots | `grim`; region selection also needs `slurp`; Escape cancels |
-| Night color | `gammastep` |
-| Authentication prompts | `lxqt-policykit-agent` and Qt Wayland |
-
-Screenshots are saved to `Screenshots` in your pictures folder (from
-`~/.config/user-dirs.dirs`, otherwise `~/Pictures`). `GRIM_DEFAULT_DIR` overrides it.
-
-### Personal Waybar settings
-
-Keep overrides in `~/.config/sway-noir/waybar/local.jsonc`, **not** in the managed
-`base.jsonc`. Create it once after updating:
+Create the file once, then add only the settings to change:
 
 ```bash
-cd ~/.config/sway-noir/waybar
-cp -n local.jsonc.example local.jsonc
+cd ~/.config/sway-noir/waybar && cp -n local.jsonc.example local.jsonc
 ```
 
-Edit only the settings you want to change. Local values win over theme and base
-settings; missing values still receive updates. Objects merge recursively, but
-`modules-left`, `modules-center` and `modules-right` replace the entire list.
-Updates and uninstall leave `local.jsonc` untouched.
-Transfer existing personal edits from `base.jsonc` yourself; they are not migrated
-automatically.
+Objects merge with the theme; `modules-left`, `modules-center` and
+`modules-right` replace the whole list.
 
-New right-hand status modules receive the theme's padding, colors and borders.
-Both hardware modules also have matching text formats in all bundled themes.
-Leave `format`, `align` and `justify` unset locally to inherit them.
-All bundled themes use **VOL, NET, PWR, CPU, GPU and MEM**. Separators distinguish
-VOL/NET/PWR; CPU/GPU/MEM share one block.
-
-#### Optional CPU and NVIDIA GPU temperatures
-
-**Off by default:** the standard bar keeps native `cpu` utilization only and does
-not enable GPU readings. To show **CPU 12 · 54°** and **GPU 28 · 61°**, with a
-degree sign but no `C` or percentage sign, add this list to `local.jsonc`
-(or uncomment it in the
-[example](waybar/local.jsonc.example)):
+**CPU and NVIDIA GPU temperatures** (off by default):
 
 ```jsonc
 "modules-right": ["pulseaudio", "network", "battery", "memory", "custom/cpu", "custom/gpu", "tray", "clock"]
 ```
 
-CPU temperatures use Intel/AMD kernel sensors, with CPU thermal zones as a
-fallback. Missing temperatures leave utilization visible. NVIDIA GPU readings
-require the driver's `nvidia-smi`; unavailable GPUs are hidden. On Fedora, obtain
-it from your chosen NVIDIA driver provider, not the base repositories. No sensor
-packages are required. Remove an old local GPU `exec` to use the built-in combined
-reading.
-For another GPU, override `exec` with
-`"\"$SWAY_NOIR_DIR/session/hardware-status\" gpu 1"`.
+GPU readings need the driver's `nvidia-smi`; on Fedora it comes from your NVIDIA
+driver provider. For another GPU, set `custom/gpu` →
+`"exec": "\"$SWAY_NOIR_DIR/session/hardware-status\" gpu 1"`.
 
-To disable temperatures again, replace `custom/cpu` with `cpu` and remove
-`custom/gpu`, or remove the local module list to restore all defaults.
+### Own themes
 
-Inside Sway Noir, reselect the current theme with **Super+Shift+t** to apply
-changes, or log out and back in. Do not edit generated files under
-`~/.local/state/sway-noir/current/`.
-
-### Personal themes
-
-To create a color variation of Rain, create the folder
-`~/.config/sway-noir/themes/my-theme/` and add a file named `theme.conf`:
+Create `~/.config/sway-noir/themes/my-theme/theme.conf`:
 
 ```ini
 name=My Theme
-accent=#7496b8
-accent_surface=#1d2936
-```
-
-Choose your own name and colors, then select **My Theme** from the theme menu.
-Other settings use Rain's defaults. For more color and layout settings, see
-[themes/rain/theme.conf](themes/rain/theme.conf).
-
-Set `bar_position=top` or `bar_position=bottom` in your theme's `theme.conf`
-to choose its default edge. `bar_margin_top` and `bar_margin_bottom` accept
-pixel values from 0 to 99 and swap when a fixed preference moves the bar.
-`font_size` (window titles, notifications) and `bar_font_size` (Waybar) accept
-1 to 99.
-
-Invalid themes are skipped in the theme menu with a warning. If the saved theme
-becomes invalid, the next login uses Rain.
-
-#### Base a theme on another theme
-
-Add `inherits=ID` to use another theme's values and templates, for example a
-color variation of Praxis:
-
-```ini
-name=Brass
 inherits=praxis
-accent=#c08a3e
+accent=#7496b8
 ```
 
-Values and templates come from the nearest theme that defines them; Rain
-provides the remaining defaults.
+`inherits` is optional (default: Rain). Missing values come from the parent
+theme. All keys and their defaults: [themes/rain/theme.conf](themes/rain/theme.conf).
 
-#### Adjust single launcher, notification or lock-screen settings
+Optional templates in the theme folder:
 
-Instead of copying a complete template, add only the changed lines to
-`fuzzel/fuzzel.ini.override`, `mako/config.override` or
-`swaylock/config.override` in your theme folder. Lines replace matching keys in
-the same `[section]`; new keys and sections are added. See
-[themes/praxis](themes/praxis) for examples. A complete template file
-(without `.override`) replaces inherited templates and overrides.
+| File | Effect |
+| --- | --- |
+| `fuzzel/fuzzel.ini.override`, `mako/config.override`, `swaylock/config.override` | Only the changed `key=value` lines; `[sections]` are kept ([example](themes/praxis)) |
+| `waybar/config.jsonc` | Appearance overrides; start with `"include": "\"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc\""` |
+| Any other file from [themes/rain/](themes/rain) | Replaces the inherited template |
 
-#### Waybar: shared behavior, theme-specific appearance
+Waybar stylesheets get the palette with `@import url("colors.css");`. Complete
+Waybar configs without `include` use `{{bar_position}}`, `{{bar_margin_top}}`
+and `{{bar_margin_bottom}}` to follow the position preference.
 
-[`waybar/base.jsonc`](waybar/base.jsonc) defines module order, actions, intervals,
-workspace behavior, the clock and the position preference. The default
-[`waybar/config.jsonc`](waybar/config.jsonc) contains Rain's appearance overrides;
-Praxis and Retro provide their own small overrides in `themes/ID/waybar/config.jsonc`.
-Colors and widget styling remain in `theme.conf` and `waybar/style.css`; the
-generated `colors.css` next to it defines the palette (`@bg`, `@accent`, …) via
-`@import url("colors.css");`.
+Invalid themes are skipped in the menu with a warning; an invalid saved theme
+falls back to Rain at login.
 
-Waybar's native `include` merges objects recursively: settings in the theme file
-win, and the shared base supplies missing settings. Arrays are replaced, not
-concatenated. The quoted environment-variable reference keeps paths with spaces
-safe and points to the generated base for the current selection:
+## Optional features
 
-```jsonc
-{
-  "include": "\"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc\"",
-  "height": 32,
-  "cpu": {"format": "CPU {usage}"}
-}
-```
+| Feature | Required software |
+| --- | --- |
+| Volume keys | `wpctl` with PipeWire and WirePlumber |
+| Audio settings (click on volume) | `pavucontrol` |
+| Screenshots | `grim`; region selection also `slurp` |
+| Night color | `gammastep` |
+| Authentication prompts | `lxqt-policykit-agent` and Qt Wayland |
 
-A personal theme without its own Waybar config still inherits Rain's appearance.
-Existing complete personal configs without `include` remain complete replacements.
-In those files, use these placeholders to respect the position preference:
-
-```jsonc
-"position": "{{bar_position}}",
-"margin-top": {{bar_margin_top}},
-"margin-bottom": {{bar_margin_bottom}},
-```
+Screenshots go to `Screenshots/` in your pictures folder (`GRIM_DEFAULT_DIR`
+overrides this).
 
 ## Update
 
-Open a terminal in the cloned `sway-noir` repository and run:
+From the cloned repository:
 
 ```bash
 git pull --ff-only
 ./install.sh
 ```
 
-If you use the Sway Noir login-screen entry, select that option again when
-prompted. **Log out and back in after updating.**
+**Log out and back in afterwards.** Choose the login-screen option again if you
+use it. Unchanged files of earlier releases are removed (with backup).
 
 ## Uninstall
-
-From the cloned repository, run:
 
 ```bash
 ./install.sh --uninstall
 ```
 
-Removes unchanged files installed by Sway Noir. Personal settings, modified
-files, personal themes and backups are kept. Software packages and application
-dark-mode settings are not changed.
+Removes unchanged installed files. Personal settings, changed files, backups,
+packages and dark-mode settings stay.
 
-## Testing code changes
-
-If you modify Sway Noir's scripts or configuration, run the automated tests
-from the repository directory:
+## Development
 
 ```bash
 bash tests/run.sh
 ```
 
-See [tests/README.md](tests/README.md) for test requirements and manual checks.
+See [tests/README.md](tests/README.md).
 
 ## License
 
-[MIT](LICENSE)
-
-Bundled wallpapers and lock-screen images were generated with ChatGPT (OpenAI).
-See [image provenance and reuse](ASSETS.md).
+[MIT](LICENSE). Bundled images were generated with ChatGPT (OpenAI); see
+[ASSETS.md](ASSETS.md).
