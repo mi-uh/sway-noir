@@ -12,7 +12,7 @@ A standalone Sway profile with matching themes and Vim-style navigation.
 untested), a **non-root** user, and the cloned repository as working directory.
 
 ```bash
-git clone https://github.com/mi-uh/sway-noir.git
+git clone --depth 1 https://github.com/mi-uh/sway-noir.git
 cd sway-noir
 ./install.sh --check-deps   # reports missing packages; changes nothing
 ./install.sh
