@@ -18,8 +18,6 @@
     "format-wifi": "NET {signalStrength}",
     "format-ethernet": "NET",
     "format-disconnected": "NET down",
-    "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
-    "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
     "max-length": 50
   },
   "cpu": {
