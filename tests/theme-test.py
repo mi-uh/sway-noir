@@ -20,6 +20,18 @@ ROOT = Path(__file__).resolve().parent.parent
 BUNDLED_THEMES = ("praxis", "rain", "retro")
 
 
+def jpeg_size(data):
+    """Return (width, height) from the first JPEG start-of-frame marker."""
+    offset = 2
+    while offset + 9 < len(data):
+        marker, length = data[offset + 1], int.from_bytes(data[offset + 2:offset + 4], "big")
+        if marker in (0xC0, 0xC1, 0xC2):
+            return (int.from_bytes(data[offset + 7:offset + 9], "big"),
+                    int.from_bytes(data[offset + 5:offset + 7], "big"))
+        offset += 2 + length
+    return None
+
+
 class Themes(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(
@@ -29,7 +41,7 @@ class Themes(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
         self.profile = self.directory / "config with spaces/sway-noir"
-        for name in ("session", "sway", "swaylock", "waybar", "fuzzel", "mako", "themes"):
+        for name in ("session", "sway", "waybar", "themes"):
             shutil.copytree(ROOT / name, self.profile / name)
         self.state = self.directory / "state with spaces/sway-noir"
         self.current = self.state / "current"
@@ -90,13 +102,13 @@ class Themes(unittest.TestCase):
         self.assertIn("set $accent    #9b2c3d", sway)
         self.assertIn("gaps inner 8", sway)
         self.assertIn("font pango:IBM Plex Sans 10", sway)
-        self.assertIn('"$SWAY_NOIR_DIR/sway/backgrounds/cozy-cyberpunk-room.png"', sway)
+        self.assertIn('"$SWAY_NOIR_DIR/themes/rain/wallpaper.jpg"', sway)
         css = (self.current / "waybar/style.css").read_text()
         self.assertIn('font-family: "IBM Plex Sans", sans-serif;', css)
         self.assertIn("border-radius: 8px;", css)
         self.assertIn("background=111315f2", (self.current / "fuzzel/fuzzel.ini").read_text())
         self.assertIn("border-color=#9b2c3dff", (self.current / "mako/config").read_text())
-        self.assertIn(f"image={self.profile}/swaylock/cozy-cyberpunk-room-lock.png", (self.current / "swaylock/config").read_text())
+        self.assertIn(f"image={self.profile}/themes/rain/lock-screen.jpg", (self.current / "swaylock/config").read_text())
         self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "top")
         self.assertFalse(self.log.exists())
 
@@ -129,9 +141,9 @@ class Themes(unittest.TestCase):
         self.assert_complete()
         self.assertEqual(self.run_theme("current").stdout, "retro\n")
         self.assertEqual(load_waybar_config(self.current / "waybar/config.jsonc")["position"], "bottom")
-        self.assertIn('output * background "$SWAY_NOIR_DIR/themes/retro/wallpaper.png" fill #080d0b',
+        self.assertIn('output * background "$SWAY_NOIR_DIR/themes/retro/wallpaper.jpg" fill #080d0b',
                       (self.current / "sway.conf").read_text())
-        self.assertIn(f"image={self.profile}/themes/retro/lock-screen.png",
+        self.assertIn(f"image={self.profile}/themes/retro/lock-screen.jpg",
                       (self.current / "swaylock/config").read_text())
         self.assertIn("@define-color accent #68b884;", (self.current / "waybar/colors.css").read_text())
         log = self.log.read_text()
@@ -572,15 +584,14 @@ class Themes(unittest.TestCase):
         self.assertNotIn("margin-left", window_style)
         self.assertIn("padding: 0 12px;", window_style)
 
-    def test_retro_and_praxis_assets_are_distinct_qhd_pngs(self):
-        for theme in ("retro", "praxis"):
+    def test_bundled_assets_are_distinct_qhd_jpegs(self):
+        for theme in BUNDLED_THEMES:
             with self.subTest(theme=theme):
                 images = []
-                for filename in ("wallpaper.png", "lock-screen.png"):
+                for filename in ("wallpaper.jpg", "lock-screen.jpg"):
                     image = (self.profile / "themes" / theme / filename).read_bytes()
-                    self.assertEqual(image[:8], b"\x89PNG\r\n\x1a\n")
-                    self.assertEqual(int.from_bytes(image[16:20], "big"), 2560)
-                    self.assertEqual(int.from_bytes(image[20:24], "big"), 1440)
+                    self.assertEqual(image[:3], b"\xff\xd8\xff")
+                    self.assertEqual(jpeg_size(image), (2560, 1440))
                     images.append(image)
                 self.assertNotEqual(*images)
 
@@ -591,7 +602,7 @@ class Themes(unittest.TestCase):
         self.assertIn("set $accent    #d5b36a", sway)
         self.assertIn("default_border pixel 1", sway)
         self.assertIn("gaps inner 12", sway)
-        self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.png" fill #0c0e0d', sway)
+        self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.jpg" fill #0c0e0d', sway)
         config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual(config["position"], "bottom")
         self.assertEqual(config["height"], 36)
@@ -633,7 +644,7 @@ class Themes(unittest.TestCase):
         self.assertIn("indicator-radius=60", lock)
         self.assertIn("indicator-thickness=2", lock)
         self.assertIn("key-hl-color=d5b36aff", lock)
-        self.assertIn(f"image={self.profile}/themes/praxis/lock-screen.png", lock)
+        self.assertIn(f"image={self.profile}/themes/praxis/lock-screen.jpg", lock)
 
     def test_live_switching_between_all_bundled_themes_is_persistent(self):
         self.run_theme("init")
@@ -746,7 +757,7 @@ class Themes(unittest.TestCase):
         sway = (self.current / "sway.conf").read_text()
         self.assertIn("set $accent    #c08a3e", sway)
         self.assertIn("set $bg        #0c0e0d", sway)
-        self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.png"', sway)
+        self.assertIn('"$SWAY_NOIR_DIR/themes/praxis/wallpaper.jpg"', sway)
         config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual((config["position"], config["height"]), ("bottom", 36))
         css = (self.current / "waybar/style.css").read_text()
@@ -761,7 +772,7 @@ class Themes(unittest.TestCase):
         self.assertIn("indicator-radius=40", lock)
         self.assertNotIn("indicator-radius=60", lock)
         self.assertIn("indicator-thickness=2", lock)
-        self.assertIn(f"image={self.profile}/themes/praxis/lock-screen.png", lock)
+        self.assertIn(f"image={self.profile}/themes/praxis/lock-screen.jpg", lock)
         self.run_theme("select", MENU_STATUS="1")
         self.assertIn("Brass (brass)", Path(str(self.log) + ".menu").read_text())
 
@@ -823,6 +834,19 @@ class Themes(unittest.TestCase):
             self.run_theme("set", "loop-a", "--no-reload", success=False)
         self.assertEqual(self.current.resolve(), original)
         self.assert_complete()
+
+    def test_former_bundled_asset_paths_still_resolve(self):
+        theme = self.profile / "themes/copied"
+        theme.mkdir()
+        (theme / "theme.conf").write_text(
+            "name=Copied\nwallpaper=sway/backgrounds/cozy-cyberpunk-room.png\n"
+            "lock_wallpaper=themes/retro/lock-screen.png\n")
+        self.run_theme("set", "copied", "--no-reload")
+        self.assertIn('"$SWAY_NOIR_DIR/themes/rain/wallpaper.jpg"', (self.current / "sway.conf").read_text())
+        self.assertIn(f"image={self.profile}/themes/retro/lock-screen.jpg",
+                      (self.current / "swaylock/config").read_text())
+        (theme / "theme.conf").write_text("name=Copied\nwallpaper=themes/copied/missing.png\n")
+        self.run_theme("set", "copied", "--no-reload", success=False)
 
     def test_font_sizes_follow_theme_values(self):
         theme = self.profile / "themes/large"

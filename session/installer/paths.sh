@@ -22,7 +22,7 @@ initialize_environment() {
 }
 
 initialize_paths() {
-    [[ -f "$setup_dir/themes/rain/theme.conf" && -f "$setup_dir/themes/sway.conf" ]] ||
+    [[ -f "$setup_dir/themes/rain/theme.conf" && -f "$setup_dir/themes/rain/sway.conf" ]] ||
         die 'Missing bundled theme sources; use a complete Sway Noir checkout.'
     initialize_file_registry
 

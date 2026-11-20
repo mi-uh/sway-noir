@@ -145,9 +145,9 @@ print_install_plan() {
     for relative_path in "${profile_files[@]}"; do
         printf '  %s\n' "${files[$relative_path.target]}"
     done
-    if (( ${#obsolete_theme_files[@]} > 0 )); then
-        printf 'Obsolete unchanged theme files (backed up and removed after verification):\n'
-        for relative_path in "${obsolete_theme_files[@]}"; do
+    if (( ${#obsolete_profile_files[@]} > 0 )); then
+        printf 'Obsolete unchanged files from earlier releases (backed up and removed after verification):\n'
+        for relative_path in "${obsolete_profile_files[@]}"; do
             printf '  %s\n' "$profile_root/$relative_path"
         done
         printf 'Other installed files:\n'

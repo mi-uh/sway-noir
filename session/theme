@@ -49,6 +49,7 @@ read_theme() {
                 [[ "$value" =~ ^[[:alnum:]][[:alnum:]\ ._-]*$ ]] || die "Invalid $key in $file"
                 ;;
             wallpaper|lock_wallpaper)
+                value="$(current_asset "$value")"
                 [[ "$value" =~ ^[[:alnum:]_./\ -]+$ && "$value" != /* && "/$value/" != */../* ]] ||
                     die "Invalid asset path $key in $file"
                 [[ "$value" == none || -f "$profile_dir/$value" ]] || die "Missing asset: $value"
@@ -65,6 +66,21 @@ theme_parent() {
         [[ "$line" != inherits=* ]] || parent="${line#inherits=}"
     done < "$1"
     printf '%s\n' "${parent:-$default_theme}"
+}
+
+# Bundled images moved to themes/ID/ as JPEG. Personal themes may still name
+# the former paths; files that still exist are kept as they are.
+current_asset() {
+    local value="$1"
+    if [[ ! -e "$profile_dir/$value" ]]; then
+        case "$value" in
+            sway/backgrounds/cozy-cyberpunk-room.png) value=themes/rain/wallpaper.jpg ;;
+            swaylock/cozy-cyberpunk-room-lock.png) value=themes/rain/lock-screen.jpg ;;
+            themes/praxis/wallpaper.png|themes/praxis/lock-screen.png|themes/retro/wallpaper.png|themes/retro/lock-screen.png)
+                value="${value%.png}.jpg" ;;
+        esac
+    fi
+    printf '%s\n' "$value"
 }
 
 load_theme() {
@@ -234,8 +250,8 @@ render() {
         if [[ "$output" == waybar/local.jsonc && ! -e "$source" && ! -L "$source" ]]; then
             continue
         fi
-        [[ "$output" != sway.conf ]] || source="$profile_dir/themes/sway.conf"
-        # The nearest complete template wins; nearer overrides apply last.
+        # The nearest complete template wins (Rain holds the defaults); nearer
+        # overrides apply last.
         template_overrides=()
         if [[ "$output" != waybar/local.jsonc ]]; then
             for theme in "${theme_chain[@]}"; do
