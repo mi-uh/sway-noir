@@ -1,0 +1,14 @@
+# Changes to the shared fuzzel/fuzzel.ini template.
+[main]
+anchor=center
+lines=7
+width=48
+horizontal-pad=28
+vertical-pad=24
+inner-pad=16
+icons-enabled=no
+
+[colors]
+background={{bg_hex}}fc
+match={{accent_hex}}ff
+selection-match={{selection_text_hex}}ff

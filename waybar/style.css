@@ -1,20 +1,12 @@
-/* Theme template; session/theme renders palette tokens before use. */
-@define-color bg {{bg}};
-@define-color surface {{surface}};
-@define-color surface_alt {{surface_alt}};
-@define-color border {{border}};
-@define-color accent {{accent}};
-@define-color accent_surface {{accent_surface}};
-@define-color urgent {{urgent}};
-@define-color text {{text}};
-@define-color muted {{muted}};
+/* Theme template; session/theme renders tokens before use. */
+@import url("colors.css");
 
 * {
     border: none;
     border-radius: 0;
     min-height: 0;
     font-family: "{{font}}", sans-serif;
-    font-size: 12px;
+    font-size: {{bar_font_size}}px;
 }
 
 window#waybar {

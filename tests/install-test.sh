@@ -265,7 +265,7 @@ printf '{"cpu": {"interval": 11}}\n' > "$test_root/personal-waybar.jsonc"
 ln -s "$test_root/personal-waybar.jsonc" "$local_waybar"
 local_waybar_hash="$(sha256sum < "$local_waybar")"
 assert_file "$test_config/sway-noir/themes/retro/waybar/style.css"
-for component in theme.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini swaylock/config; do
+for component in theme.conf waybar/config.jsonc waybar/style.css fuzzel/fuzzel.ini.override mako/config.override swaylock/config.override; do
     assert_same "$repo_root/themes/praxis/$component" "$test_config/sway-noir/themes/praxis/$component"
 done
 for image in wallpaper.png lock-screen.png; do

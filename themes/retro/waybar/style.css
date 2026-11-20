@@ -1,20 +1,12 @@
 /* Terminal geometry, quiet phosphor green and amber alarm states. */
-@define-color bg {{bg}};
-@define-color surface {{surface}};
-@define-color surface_alt {{surface_alt}};
-@define-color border {{border}};
-@define-color accent {{accent}};
-@define-color accent_surface {{accent_surface}};
-@define-color urgent {{urgent}};
-@define-color text {{text}};
-@define-color muted {{muted}};
+@import url("colors.css");
 
 * {
     border: none;
     border-radius: 0;
     min-height: 0;
     font-family: "{{font}}", monospace;
-    font-size: 11px;
+    font-size: {{bar_font_size}}px;
 }
 
 window#waybar {

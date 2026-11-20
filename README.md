@@ -219,6 +219,34 @@ Other settings use Rain's defaults. For more color and layout settings, see
 Set `bar_position=top` or `bar_position=bottom` in your theme's `theme.conf`
 to choose its default edge. `bar_margin_top` and `bar_margin_bottom` accept
 pixel values from 0 to 99 and swap when a fixed preference moves the bar.
+`font_size` (window titles, notifications) and `bar_font_size` (Waybar) accept
+1 to 99.
+
+Invalid themes are skipped in the theme menu with a warning. If the saved theme
+becomes invalid, the next login uses Rain.
+
+#### Base a theme on another theme
+
+Add `inherits=ID` to use another theme's values and templates, for example a
+color variation of Praxis:
+
+```ini
+name=Brass
+inherits=praxis
+accent=#c08a3e
+```
+
+Values and templates come from the nearest theme that defines them; Rain
+provides the remaining defaults.
+
+#### Adjust single launcher, notification or lock-screen settings
+
+Instead of copying a complete template, add only the changed lines to
+`fuzzel/fuzzel.ini.override`, `mako/config.override` or
+`swaylock/config.override` in your theme folder. Lines replace matching keys in
+the same `[section]`; new keys and sections are added. See
+[themes/praxis](themes/praxis) for examples. A complete template file
+(without `.override`) replaces inherited templates and overrides.
 
 #### Waybar: shared behavior, theme-specific appearance
 
@@ -226,7 +254,9 @@ pixel values from 0 to 99 and swap when a fixed preference moves the bar.
 workspace behavior, the clock and the position preference. The default
 [`waybar/config.jsonc`](waybar/config.jsonc) contains Rain's appearance overrides;
 Praxis and Retro provide their own small overrides in `themes/ID/waybar/config.jsonc`.
-Colors and widget styling remain in `theme.conf` and `waybar/style.css`.
+Colors and widget styling remain in `theme.conf` and `waybar/style.css`; the
+generated `colors.css` next to it defines the palette (`@bg`, `@accent`, …) via
+`@import url("colors.css");`.
 
 Waybar's native `include` merges objects recursively: settings in the theme file
 win, and the shared base supplies missing settings. Arrays are replaced, not

@@ -1,4 +1,4 @@
-font={{font}} 10
+font={{font}} {{font_size}}
 background-color={{surface}}f2
 text-color={{text}}ff
 border-color={{accent}}ff

@@ -34,7 +34,7 @@ def status_declarations(css, module):
     This only checks static rules, not GTK rendering or pseudo-class states.
     """
     css = re.sub(r"/\*[\s\S]*?\*/", "", css)
-    css = re.sub(r"@define-color\b[^;]+;", "", css)
+    css = re.sub(r"@(?:define-color|import)\b[^;]+;", "", css)
     supported = {"*": (0, 0, 0), ".modules-right > widget > *": (0, 1, 1),
                  f"#{module}": (1, 0, 0)}
     matches = []

@@ -1,0 +1,13 @@
+# Changes to the shared swaylock/config template.
+font-size=14
+indicator-radius=60
+indicator-thickness=2
+inside-color={{bg_hex}}e6
+inside-clear-color={{bg_hex}}e6
+inside-caps-lock-color={{bg_hex}}e6
+inside-ver-color={{bg_hex}}e6
+inside-wrong-color={{bg_hex}}e6
+ring-color={{accent_hex}}80
+ring-caps-lock-color={{accent_hex}}ff
+key-hl-color={{accent_hex}}ff
+bs-hl-color={{muted_hex}}ff
