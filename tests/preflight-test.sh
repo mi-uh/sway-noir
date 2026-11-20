@@ -438,7 +438,7 @@ done
 for scenario in linked-login-directory unexpected-local-redirect linked-atomic-destination; do
     prepare_fixture "$scenario"
     outside="$fixture_root/outside"
-    install -D -m 755 "$repo_root/session/start-sway-noir" "$outside/bin/start-sway-noir"
+    install -D -m 755 "$repo_root/session/system-launcher" "$outside/bin/start-sway-noir"
     install -D -m 644 "$repo_root/session/sway-noir.desktop" \
         "$outside/share/wayland-sessions/sway-noir.desktop"
     install -m 644 "$repo_root/session/sway-noir.desktop" "$outside/sway-noir.desktop"

@@ -161,7 +161,7 @@ mode, conflict rule and initial action in one record. Profile directories are
 derived from those records. Add bundled profile files with
 `register_profile_file`, integrations with `register_file`, and login destinations
 with `register_login_file`. A new login destination also needs an explicit place
-in the named fallback order in `session/login-integration.sh`.
+in the named fallback order in `session/installer/login-integration.sh`.
 
 Consumers use named IDs such as `portal`, `session_target` and `launcher`, never
 positions in a list. Profile IDs remain relative paths, and integration checksum

@@ -74,7 +74,7 @@ initialize_file_registry() {
     register_file portal external xdg-desktop-portal/sway-portals.conf \
         "$config_root/xdg-desktop-portal/sway-portals.conf" 644 preserve install
 
-    register_file launcher system session/start-sway-noir /usr/local/bin/start-sway-noir 755 error preserve
+    register_file launcher system session/system-launcher /usr/local/bin/start-sway-noir 755 error preserve
     register_login_file login_local /usr/local/share/wayland-sessions/sway-noir.desktop
     register_login_file login_vendor /usr/share/wayland-sessions/sway-noir.desktop
     register_login_file login_etc /etc/wayland-sessions/sway-noir.desktop
