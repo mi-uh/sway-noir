@@ -49,8 +49,8 @@ require_command() {
 
 # shellcheck source=session/dependencies.sh
 source "$setup_dir/session/dependencies.sh"
-# shellcheck source=session/login-integration.sh
-source "$setup_dir/session/login-integration.sh"
+# shellcheck source=session/installer/login-integration.sh
+source "$setup_dir/session/installer/login-integration.sh"
 # shellcheck source=session/installer/cli.sh
 source "$setup_dir/session/installer/cli.sh"
 # shellcheck source=session/installer/files.sh
