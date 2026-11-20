@@ -148,7 +148,8 @@ startup programs or the audio-settings command, log out and back in.
 | Night color | `gammastep` |
 | Authentication prompts | `lxqt-policykit-agent` and Qt Wayland |
 
-Screenshots are saved to `~/Pictures/Screenshots` by default.
+Screenshots are saved to `Screenshots` in your pictures folder (from
+`~/.config/user-dirs.dirs`, otherwise `~/Pictures`). `GRIM_DEFAULT_DIR` overrides it.
 
 ### Personal Waybar settings
 
