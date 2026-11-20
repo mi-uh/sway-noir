@@ -29,7 +29,32 @@ if [[ "$mode" == region ]]; then
     grim_options=(-g "$geometry")
 fi
 
-readonly screenshot_dir="${GRIM_DEFAULT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}"
+# Read XDG_PICTURES_DIR from user-dirs.dirs without evaluating it as shell code.
+# Only absolute paths and the documented "$HOME/..." form are accepted.
+pictures_dir() {
+    local file="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs" line value
+    if [[ -n "${XDG_PICTURES_DIR:-}" ]]; then
+        printf '%s\n' "$XDG_PICTURES_DIR"
+        return
+    fi
+    if [[ -f "$file" && -r "$file" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ "$line" =~ ^XDG_PICTURES_DIR=\"([^\"\`\\]*)\"$ ]] || continue
+            value="${BASH_REMATCH[1]}"
+            case "$value" in
+                \$HOME/?*) value="$HOME/${value#\$HOME/}" ;;
+                /*) ;;
+                *) continue ;;
+            esac
+            [[ "$value" != *'$'* ]] || continue
+            printf '%s\n' "$value"
+            return
+        done < "$file"
+    fi
+    printf '%s\n' "$HOME/Pictures"
+}
+
+readonly screenshot_dir="${GRIM_DEFAULT_DIR:-$(pictures_dir)/Screenshots}"
 [[ "$screenshot_dir" == /* ]] || die 'The screenshot directory must be an absolute path.'
 umask 077
 mkdir -p -- "$screenshot_dir"

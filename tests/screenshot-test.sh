@@ -159,6 +159,26 @@ output="$(cat "$case_root/output.log")"
 [[ "$status" == 0 && "$output" == "$XDG_PICTURES_DIR/Screenshots/"* ]] ||
     fail 'XDG_PICTURES_DIR was ignored'
 
+new_case user-dirs
+install -d "$HOME/.config"
+# shellcheck disable=SC2016 # user-dirs.dirs stores a literal $HOME.
+printf '%s\n' '# Comment' 'XDG_DESKTOP_DIR="$HOME/Desktop"' 'XDG_PICTURES_DIR="$HOME/Meine Bilder"' \
+    > "$HOME/.config/user-dirs.dirs"
+capture full
+output="$(cat "$case_root/output.log")"
+[[ "$status" == 0 && "$output" == "$HOME/Meine Bilder/Screenshots/"* ]] ||
+    fail 'user-dirs.dirs pictures directory was ignored'
+
+new_case user-dirs-unsafe
+install -d "$HOME/.config"
+# shellcheck disable=SC2016 # Deliberately unsafe, unexpanded values.
+printf '%s\n' 'XDG_PICTURES_DIR="$(touch "$HOME/evaluated")"' 'XDG_PICTURES_DIR="relative"' \
+    'XDG_PICTURES_DIR="$HOME"' > "$HOME/.config/user-dirs.dirs"
+capture full
+output="$(cat "$case_root/output.log")"
+[[ "$status" == 0 && "$output" == "$HOME/Pictures/Screenshots/"* && ! -e "$HOME/evaluated" ]] ||
+    fail 'unsafe user-dirs.dirs values were not ignored'
+
 new_case relative-directory
 export GRIM_DEFAULT_DIR='relative-output'
 capture full
