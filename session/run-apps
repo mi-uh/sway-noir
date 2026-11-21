@@ -29,7 +29,38 @@ reload_appearance() {
 }
 trap reload_appearance USR2
 
-swayidle -w before-sleep "$lock_command" &
+valid_timeout() { [[ "$1" =~ ^(0|[1-9][0-9]{0,5})$ ]]; }
+
+idle_lock_timeout="${SWAY_NOIR_IDLE_LOCK_TIMEOUT:-0}"
+display_off_timeout="${SWAY_NOIR_LOCKED_DISPLAY_OFF_TIMEOUT:-0}"
+if ! valid_timeout "$idle_lock_timeout"; then
+    printf 'Warning: invalid idle lock timeout %s; automatic locking is disabled.\n' "$idle_lock_timeout" >&2
+    idle_lock_timeout=0
+fi
+if ! valid_timeout "$display_off_timeout"; then
+    printf 'Warning: invalid locked display-off timeout %s; displays stay on.\n' "$display_off_timeout" >&2
+    display_off_timeout=0
+fi
+
+# swayidle runs each action through sh -c; quote the helper path for it.
+printf -v display_helper '%q' "$profile_dir/session/idle-display"
+idle_arguments=(-w)
+if (( idle_lock_timeout > 0 )); then
+    idle_arguments+=(timeout "$idle_lock_timeout" "$lock_command")
+fi
+if (( display_off_timeout > 0 )); then
+    # Timeouts count from the last input: the first covers manual locks, the
+    # second the automatic lock. The helper ignores both while unlocked.
+    idle_arguments+=(timeout "$display_off_timeout" "$display_helper off-if-locked"
+        resume "$display_helper on")
+    if (( idle_lock_timeout > 0 )); then
+        idle_arguments+=(timeout "$((idle_lock_timeout + display_off_timeout))"
+            "$display_helper off-if-locked" resume "$display_helper on")
+    fi
+    idle_arguments+=(after-resume "$display_helper on")
+fi
+idle_arguments+=(before-sleep "$lock_command")
+swayidle "${idle_arguments[@]}" &
 waybar \
     --config "$theme_dir/waybar/config.jsonc" \
     --style "$theme_dir/waybar/style.css" &

@@ -286,7 +286,7 @@ assert_same "$repo_root/themes/rain/mako/config" "$test_config/sway-noir/themes/
 
 # Equal contents must not hide damaged executable or configuration permissions.
 profile_executables=(start-sway-noir session/start-session session/run-apps session/screenshot
-    session/optional-command session/hardware-status session/polkit-agent session/theme session/lock-screen)
+    session/optional-command session/hardware-status session/polkit-agent session/theme session/lock-screen session/idle-display)
 for relative_path in "${profile_executables[@]}"; do
     chmod 644 "$test_config/sway-noir/$relative_path"
 done
@@ -338,7 +338,7 @@ fi
 grep -Fqx 'bindsym $mod+Shift+x exec $lock_command' \
     "$repo_root/sway/config.d/60-keybindings.conf" ||
     fail 'manual locking does not use the shared lock command'
-grep -Fqx 'exec "$SWAY_NOIR_DIR/session/start-session" "$lock_command" "$audio_settings_command" "$polkit_agent_command" $gammastep_command' \
+grep -Fqx 'exec "$SWAY_NOIR_DIR/session/start-session" --idle-lock $idle_lock_timeout --locked-display-off $locked_display_off_timeout "$lock_command" "$audio_settings_command" "$polkit_agent_command" $gammastep_command' \
     "$repo_root/sway/config.d/99-startup.conf" ||
     fail 'session startup does not pass the shared lock command'
 grep -Fqx 'bindsym XF86AudioMicMute exec $audio_command set-mute @DEFAULT_AUDIO_SOURCE@ toggle' \
