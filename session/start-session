@@ -7,6 +7,27 @@ warn() {
     printf 'Warning: %s\n' "$*" >&2
 }
 
+# Idle settings are named options so older positional calls keep working.
+idle_lock_timeout=0
+locked_display_off_timeout=0
+while (( $# > 0 )); do
+    case "$1" in
+        --idle-lock|--locked-display-off)
+            if (( $# < 2 )); then
+                printf 'Missing value for %s\n' "$1" >&2
+                exit 2
+            fi
+            if [[ "$1" == --idle-lock ]]; then
+                idle_lock_timeout="$2"
+            else
+                locked_display_off_timeout="$2"
+            fi
+            shift 2
+            ;;
+        *) break ;;
+    esac
+done
+
 if (( $# < 4 )); then
     printf 'Missing lock, audio settings, PolicyKit agent or Gammastep command\n' >&2
     exit 2
@@ -84,6 +105,8 @@ systemd-run --user --collect --service-type=exec --expand-environment=no \
     --setenv="SWAY_NOIR_SESSION_ID=$SWAY_NOIR_SESSION_ID" \
     --setenv="XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}" \
     --setenv="SWAY_NOIR_AUDIO_SETTINGS_COMMAND=$audio_settings_command" \
+    --setenv="SWAY_NOIR_IDLE_LOCK_TIMEOUT=$idle_lock_timeout" \
+    --setenv="SWAY_NOIR_LOCKED_DISPLAY_OFF_TIMEOUT=$locked_display_off_timeout" \
     --setenv="XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}" \
     --setenv="PATH=$PATH" \
     "$profile_dir/session/run-apps" "$lock_command" "$polkit_agent_command" "$@"

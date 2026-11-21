@@ -1,0 +1,31 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+# swayidle actions: turn displays off only while this user's screen is locked,
+# so idle time alone never blanks an unlocked desktop.
+
+screen_locked() {
+    local comm name
+    for comm in /proc/[0-9]*/comm; do
+        [[ -O "$comm" ]] || continue
+        IFS= read -r name 2>/dev/null < "$comm" || continue
+        [[ "$name" != swaylock ]] || return 0
+    done
+    return 1
+}
+
+case "${1:-}" in
+    off-if-locked)
+        (( $# == 1 )) || exit 2
+        screen_locked || exit 0
+        exec swaymsg -q 'output * power off'
+        ;;
+    on)
+        (( $# == 1 )) || exit 2
+        exec swaymsg -q 'output * power on'
+        ;;
+    *)
+        printf 'Usage: %s off-if-locked | on\n' "$0" >&2
+        exit 2
+        ;;
+esac

@@ -13,6 +13,9 @@ set $menu fuzzel --config="$SWAY_NOIR_THEME_DIR/fuzzel/fuzzel.ini"
 
 # Defaults; see 99-local.conf.example for session overrides and binding changes.
 set $lock_command "$SWAY_NOIR_DIR/session/lock-screen"
+# Seconds without input; 0 disables. Applied at login.
+set $idle_lock_timeout 600
+set $locked_display_off_timeout 60
 set $gammastep_command "$SWAY_NOIR_DIR/session/optional-command" night-color gammastep -c "$SWAY_NOIR_DIR/gammastep/config.ini"
 set $audio_command "$SWAY_NOIR_DIR/session/optional-command" audio-controls wpctl
 set $media_command "$SWAY_NOIR_DIR/session/optional-command" media-controls playerctl

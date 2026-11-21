@@ -39,6 +39,8 @@ class StartupCommand(unittest.TestCase):
                         "-c", str(profile / "gammastep/config.ini"),
                     ]
                     values = {
+                        "idle_lock_timeout": "600",
+                        "locked_display_off_timeout": "60",
                         "lock_command": "lock-screen --ready",
                         "audio_settings_command": "audio-settings --option",
                         "polkit_agent_command": "polkit-agent --option",
@@ -57,6 +59,7 @@ class StartupCommand(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     arguments = log.read_bytes().decode().split("\0")[:-1]
                     self.assertEqual(arguments, [
+                        "--idle-lock", "600", "--locked-display-off", "60",
                         values["lock_command"], values["audio_settings_command"],
                         values["polkit_agent_command"], *gammastep,
                     ])
