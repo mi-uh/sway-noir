@@ -28,17 +28,16 @@ def private_use_characters(text):
     }
 
 
-def status_declarations(css, module):
+def status_declarations(css, module, position=None):
     """Resolve the simple right-hand selector cascade used here.
 
+    position is "first-child", "last-child" or None for a middle module.
     This only checks static rules, not GTK rendering or pseudo-class states.
     """
     css = re.sub(r"/\*[\s\S]*?\*/", "", css)
     css = re.sub(r"@(?:define-color|import)\b[^;]+;", "", css)
     supported = {"*": (0, 0, 0), ".modules-right > widget > *": (0, 1, 1),
                  f"#{module}": (1, 0, 0)}
-    # The tested layouts all start with pulseaudio and end with clock.
-    position = {"pulseaudio": "first-child", "clock": "last-child"}.get(module)
     if position:
         supported[f"window#waybar .modules-right > widget:{position} > *"] = (1, 2, 2)
     matches = []
@@ -52,9 +51,9 @@ def status_declarations(css, module):
             yield key, value.strip()
 
 
-def status_borders(css, module):
-    borders = {}
-    for key, value in status_declarations(css, module):
+def status_borders(css, module, position=None):
+    borders = {"left": "none", "right": "none"}
+    for key, value in status_declarations(css, module, position):
         if key == "border":
             borders.update({side: value for side in ("left", "right", "top", "bottom")})
         elif key in ("border-left", "border-right", "border-top", "border-bottom"):
@@ -156,59 +155,69 @@ class WaybarTests(unittest.TestCase):
                     usage = re.sub(r"<[^>]*>", "", config[module]["format"].format("12"))
                     self.assertNotIn("°", usage)
 
-    def test_status_separators_keep_native_and_custom_hardware_in_one_block(self):
-        hardware = {"cpu", "custom-cpu", "custom-gpu", "memory"}
+    def test_every_status_module_is_separated_in_any_order(self):
         layouts = (
             ("pulseaudio", "network", "battery", "memory", "cpu", "tray", "clock"),
             ("pulseaudio", "network", "battery", "memory", "custom-cpu", "custom-gpu", "tray", "clock"),
-            ("pulseaudio", "network", "battery", "memory", "cpu", "custom-gpu", "tray", "clock"),
-            ("pulseaudio", "network", "custom-cpu", "memory", "tray", "clock"),
-            ("pulseaudio", "battery", "custom-cpu", "memory", "tray", "clock"),
+            ("memory", "custom-new", "cpu", "pulseaudio", "clock", "tray"),
+            ("custom-new", "custom-gpu", "battery"),
         )
+
+        def stroke(value):
+            return value not in ("none", "0")
+
         for theme, css in self.styles.items():
-            borders = {module: status_borders(css, module)
-                       for layout in layouts for module in layout}
-            for module in ("pulseaudio", "network", "battery"):
-                with self.subTest(theme=theme, separator_after=module):
-                    self.assertTrue(borders[module]["right"].startswith("1px solid "))
             for layout in layouts:
-                for left, right in zip(layout, layout[1:]):
-                    with self.subTest(theme=theme, layout=layout, boundary=(left, right)):
-                        strokes = sum(border not in ("none", "0")
-                                      for border in (borders[left]["right"], borders[right]["left"]))
-                        self.assertEqual(strokes, 0 if {left, right} <= hardware else 1)
+                borders = [status_borders(css, module, "first-child" if index == 0 else
+                                          "last-child" if index == len(layout) - 1 else None)
+                           for index, module in enumerate(layout)]
+                with self.subTest(theme=theme, layout=layout, edge="first"):
+                    self.assertTrue(stroke(borders[0]["left"]))
+                with self.subTest(theme=theme, layout=layout, edge="last"):
+                    self.assertTrue(stroke(borders[-1]["right"]))
+                for index in range(len(layout) - 1):
+                    with self.subTest(theme=theme, layout=layout, boundary=layout[index:index + 2]):
+                        strokes = (stroke(borders[index]["right"])
+                                   + stroke(borders[index + 1]["left"]))
+                        self.assertEqual(strokes, 1)
             if theme == "rain":
                 # Keep the joined capsule's horizontal outline and rounded ends.
-                self.assertIn("@accent", borders["pulseaudio"]["left"])
-                self.assertIn("@accent", borders["clock"]["right"])
-                for module in hardware:
+                self.assertIn("@accent", status_borders(css, "pulseaudio", "first-child")["left"])
+                self.assertIn("@accent", status_borders(css, "clock", "last-child")["right"])
+                for module in ("cpu", "memory", "custom-new"):
+                    borders = status_borders(css, module)
                     for side in ("top", "bottom"):
-                        self.assertTrue(borders[module][side].startswith("1px solid "))
+                        self.assertTrue(borders[side].startswith("1px solid "))
 
-    def test_hardware_readings_share_one_normal_gutter_in_every_theme(self):
-        hardware = ("cpu", "custom-cpu", "custom-gpu", "memory")
+    def test_status_modules_share_one_gutter_in_every_theme(self):
         for theme, css in self.styles.items():
-            gutter = {"rain": 10, "praxis": 9, "retro": 11}[theme]
-            for module in ("pulseaudio", "network", "battery"):
-                with self.subTest(theme=theme, unchanged=module):
+            gutter = {"rain": 10, "praxis": 9, "retro": 9}[theme]
+            for module in ("pulseaudio", "network", "battery", "memory", "cpu",
+                           "custom-cpu", "custom-gpu", "custom-new"):
+                with self.subTest(theme=theme, module=module):
                     padding = status_padding(css, module)
                     self.assertEqual(padding["left"], gutter)
                     self.assertEqual(padding["right"], gutter)
-            for module in hardware:
-                with self.subTest(theme=theme, module=module):
-                    padding = status_padding(css, module)
-                    self.assertEqual(padding["top"], 0)
-                    self.assertEqual(padding["bottom"], 0)
-                    self.assertGreater(padding["left"], 0)
-                    self.assertGreater(padding["right"], 0)
-                    # Works with either CPU module, GPU disabled, and any order.
-                    for neighbor in hardware:
-                        next_padding = status_padding(css, neighbor)
-                        self.assertEqual(padding["right"] + next_padding["left"], gutter)
             with self.subTest(theme=theme, unchanged="tray"):
                 tray = status_padding(css, "tray")
-                self.assertEqual(tray["left"], 11 if theme == "retro" else 10)
-                self.assertEqual(tray["right"], 11 if theme == "retro" else 10)
+                self.assertEqual(tray["left"], 10)
+                self.assertEqual(tray["right"], 10)
+
+    def test_workspaces_mirror_the_status_separators(self):
+        for theme, css in self.styles.items():
+            css = re.sub(r"/\*[\s\S]*?\*/", "", css)
+            bodies = [body for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)
+                      if "#workspaces" in [selector.strip() for selector in selectors.split(",")]]
+            with self.subTest(theme=theme):
+                if theme == "rain":
+                    # Rain frames the workspaces as a capsule, like its status capsule.
+                    self.assertTrue(any("border: 1px solid" in body for body in bodies))
+                elif theme == "praxis":
+                    body = "".join(bodies)
+                    self.assertIn("border-left: 1px solid transparent", body)
+                    self.assertRegex(body, r"border-image:\s*linear-gradient\([^;]*@border 25%")
+                else:
+                    self.assertTrue(any("border-left: 1px solid @border" in body for body in bodies))
 
     def test_hardware_defaults_are_shared_and_theme_overrides_only_define_appearance(self):
         for theme, config in self.configurations.items():
@@ -289,8 +298,7 @@ class WaybarTests(unittest.TestCase):
                 rules = [(selectors.split(","), body)
                          for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)]
                 # Match the module child of the EventBox, not nested labels,
-                # tray icons or workspace buttons. Shared appearance stays generic;
-                # hardware-specific rules only suppress internal separators.
+                # tray icons or workspace buttons. Shared appearance stays generic.
                 status_rules = [body for selectors, body in rules
                                 if ".modules-right > widget > *" in
                                 [selector.strip() for selector in selectors]]

@@ -28,8 +28,13 @@ window#waybar.bottom {
     border-bottom: none;
 }
 
+/* Mirror the status separators. GTK has no pseudo-elements, so the gradient
+ * insets the line like the status margins without shrinking the buttons. */
 #workspaces {
-    margin-left: 8px;
+    padding-left: 7px;
+    border-left: 1px solid transparent;
+    border-image: linear-gradient(to bottom, transparent 25%, @border 25%,
+                                  @border 75%, transparent 75%) 0 0 0 1 / 0 0 0 1px;
 }
 
 #workspaces button {
@@ -92,29 +97,13 @@ window#waybar.bottom {
 #clock {
     color: @text;
     padding: 0 9px;
-}
-
-/* Neighboring hardware readings share one normal status gutter, not two. */
-#cpu,
-#custom-cpu,
-#custom-gpu,
-#memory {
-    padding: 0 4px 0 5px;
-}
-
-/* Separators mark functional groups, rather than boxing every reading. */
-#pulseaudio,
-#network,
-#battery {
-    border-right: 1px solid @border;
-    margin: 9px 0;
-}
-
-/* CPU/GPU/memory stay in one block, ending at the tray's left separator. */
-#tray,
-#clock {
     border-left: 1px solid @border;
     margin: 9px 0;
+}
+
+/* Close the row after the last module, whatever the order. */
+window#waybar .modules-right > widget:last-child > * {
+    border-right: 1px solid @border;
 }
 
 #tray {

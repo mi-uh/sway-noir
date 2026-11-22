@@ -90,30 +90,6 @@ window#waybar.empty #window {
     border-left: 1px solid alpha(@border, 0.65);
 }
 
-/* Separate VOL/NET/PWR at their right edge; keep CPU/GPU/memory together. */
-#network,
-#battery,
-#cpu,
-#custom-cpu,
-#custom-gpu,
-#memory {
-    border-left: none;
-}
-
-#pulseaudio,
-#network,
-#battery {
-    border-right: 1px solid alpha(@border, 0.65);
-}
-
-/* Neighboring hardware readings share one normal status gutter, not two. */
-#cpu,
-#custom-cpu,
-#custom-gpu,
-#memory {
-    padding: 0 5px;
-}
-
 /* Round the outside of each output's joined status capsule, whichever visible
  * modules come first and last. The ID keeps these above module rules. */
 window#waybar .modules-right > widget:first-child > * {
