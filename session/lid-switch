@@ -59,24 +59,29 @@ case "$event" in
     *) usage ;;
 esac
 
-# The watcher reacts while the lid stays closed: unplugging the charger then
-# applies the battery action, and undocking applies the action for the power
-# source, so the laptop does not keep running in a bag.
+# While the lid stays closed, the watcher keeps the action matching the power
+# source: unplugging or undocking applies it, and a laptop that wakes up with
+# the lid closed suspends again after 3 polls (30 s by default), like logind.
+# Polls only advance while awake, so time spent asleep does not count.
 watch() {
-    local state="$1" interval="${SWAY_NOIR_LID_POLL_INTERVAL:-10}"
+    local applied="$1" wanted awake=0
+    local interval="${SWAY_NOIR_LID_POLL_INTERVAL:-10}"
     [[ "$interval" =~ ^[1-9][0-9]{0,2}$ ]] || interval=10
     exec 9> "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sway-noir-lid.lock"
     flock -n 9 || exit 0
     while sleep "$interval" && logind_true LidClosed; do
         if logind_true Docked; then
-            state=docked
-        elif ! logind_true OnExternalPower; then
+            applied=docked
+            continue
+        fi
+        wanted="$battery_action"
+        ! logind_true OnExternalPower || wanted="$ac_action"
+        if [[ "$wanted" != "$applied" ]] ||
+           { [[ "$applied" == suspend ]] && (( ++awake >= 3 )); }; then
             # Actions must not inherit the lock, or a lock screen would hold it.
-            apply "$battery_action" 9>&-
-            exit 0
-        elif [[ "$state" == docked ]]; then
-            apply "$ac_action" 9>&-
-            state=charger
+            apply "$wanted" 9>&-
+            applied="$wanted"
+            awake=0
         fi
     done
 }
@@ -86,7 +91,8 @@ if logind_true Docked; then
     watch docked
 elif ! logind_true OnExternalPower; then
     apply "$battery_action"
+    watch "$battery_action"
 else
     apply "$ac_action"
-    [[ "$battery_action" == "$ac_action" ]] || watch charger
+    watch "$ac_action"
 fi
