@@ -106,31 +106,57 @@ driver provider. For another GPU, set `custom/gpu` →
 
 ### Own themes
 
-Create `~/.config/sway-noir/themes/my-theme/theme.conf`:
+Build your own theme from a bundled one. The bundled theme is not changed.
+
+**Example:** Praxis with a blue accent color.
+
+1. Create the file `~/.config/sway-noir/themes/my-theme/theme.conf`:
+
+   ```ini
+   name=My Theme
+   inherits=praxis
+   accent=#7496b8
+   ```
+
+   `inherits` is the theme you start from. Every setting you do not write
+   stays as in Praxis. All settings: [themes/rain/theme.conf](themes/rain/theme.conf).
+2. Press `Super+Shift+t` and select **My Theme**.
+
+To change your theme later, edit this file and select the theme again.
+**Do not edit Rain, Praxis or Retro**; updates replace them.
+
+**Own wallpaper:** put the images into your theme folder and add:
 
 ```ini
-name=My Theme
-inherits=praxis
-accent=#7496b8
+wallpaper=themes/my-theme/wallpaper.jpg
+lock_wallpaper=themes/my-theme/lock-screen.jpg
 ```
 
-`inherits` is optional (default: Rain). Missing values come from the parent
-theme. All keys and their defaults: [themes/rain/theme.conf](themes/rain/theme.conf).
+**Change single settings (optional)** of the launcher (fuzzel), notifications
+(mako) or lock screen (swaylock): create a file with only the lines to change.
+For example, a larger lock-screen ring in
+`~/.config/sway-noir/themes/my-theme/swaylock/config.override`:
 
-Optional templates in the theme folder:
+```ini
+indicator-radius=80
+```
 
-| File | Effect |
-| --- | --- |
-| `fuzzel/fuzzel.ini.override`, `mako/config.override`, `swaylock/config.override` | Only the changed `key=value` lines; `[sections]` are kept ([example](themes/praxis)) |
-| `waybar/config.jsonc` | Appearance overrides; start with `"include": "\"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc\""` |
-| Any other file from [themes/rain/](themes/rain) | Replaces the inherited template |
+Available lines: `swaylock/config`, `fuzzel/fuzzel.ini` and `mako/config` in
+[themes/rain/](themes/rain).
 
-Waybar stylesheets get the palette with `@import url("colors.css");`. Complete
-Waybar configs without `include` use `{{bar_position}}`, `{{bar_margin_top}}`
-and `{{bar_margin_bottom}}` to follow the position preference.
+**Replace a whole file (optional)**, for example the Waybar style: copy it
+into your theme folder and edit the copy.
 
-Invalid themes are skipped in the menu with a warning; an invalid saved theme
-falls back to Rain at login.
+```bash
+cd ~/.config/sway-noir/themes
+mkdir -p my-theme/waybar
+cp praxis/waybar/style.css my-theme/waybar/
+```
+
+If your starting theme does not have the file, copy it from `rain/`.
+
+In all these files, `{{accent}}` inserts the accent color from your
+`theme.conf`; this works for every setting.
 
 ## Optional features
 
