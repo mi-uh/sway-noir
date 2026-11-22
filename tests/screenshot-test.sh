@@ -58,7 +58,7 @@ new_case() {
     export HOME="$case_root/home with spaces"
     export GRIM_LOG="$case_root/grim.log"
     export SLURP_LOG="$case_root/slurp.log"
-    unset GRIM_DEFAULT_DIR XDG_PICTURES_DIR GRIM_MODE SLURP_MODE
+    unset GRIM_DEFAULT_DIR XDG_PICTURES_DIR XDG_CONFIG_HOME GRIM_MODE SLURP_MODE
     : > "$GRIM_LOG"
     : > "$SLURP_LOG"
 }
