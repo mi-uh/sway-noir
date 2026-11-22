@@ -67,8 +67,11 @@ grep -Fqx 'swaymsg -q output * power off' "$LID_LOG" || fail 'charger action did
 # A second close event does not start another watcher.
 "$profile/session/lid-switch" close lock suspend lock
 logind OnExternalPower false
+sleep 1.5
+logind LidClosed false
 wait "$watcher"
 [[ "$(grep -Fxc 'systemctl suspend' "$LID_LOG")" == 1 ]] || fail 'unplugging did not suspend exactly once'
+logind LidClosed true
 
 # Opening the lid ends the watcher without a battery action.
 logind OnExternalPower true
@@ -90,8 +93,11 @@ watcher=$!
 sleep 0.5
 [[ ! -s "$LID_LOG" ]] || fail 'docked laptop was not left alone'
 logind Docked false
+sleep 1.5
+logind LidClosed false
 wait "$watcher"
 expect_log 'systemctl suspend' 'undocking on battery did not apply the battery action'
+logind LidClosed true
 # Undocking on the charger applies the charger action and keeps watching.
 logind Docked true
 logind OnExternalPower true
@@ -103,9 +109,37 @@ logind Docked false
 sleep 1.5
 grep -Fqx 'swaymsg -q output * power off' "$LID_LOG" || fail 'undocking on the charger did not lock'
 logind OnExternalPower false
+sleep 1.5
+logind LidClosed false
 wait "$watcher"
 grep -Fqx 'systemctl suspend' "$LID_LOG" || fail 'unplugging after undocking did not suspend'
+
+# Waking up with the lid closed suspends again after three polls; opening the
+# lid ends the watcher. The mocked suspend returns at once, like a wake-up.
+logind Docked false
+logind OnExternalPower false
+logind LidClosed true
+: > "$LID_LOG"
+"$profile/session/lid-switch" close lock suspend lock &
+watcher=$!
+sleep 2.5
+[[ "$(grep -Fxc 'systemctl suspend' "$LID_LOG")" == 1 ]] || fail 'suspended again before three polls'
+sleep 2
+[[ "$(grep -Fxc 'systemctl suspend' "$LID_LOG")" == 2 ]] || fail 'wake-up with the lid closed did not suspend again'
 logind LidClosed false
+wait "$watcher"
+# Plugging in after a wake-up applies the charger action instead.
+logind LidClosed true
+: > "$LID_LOG"
+"$profile/session/lid-switch" close lock suspend lock &
+watcher=$!
+sleep 0.5
+logind OnExternalPower true
+sleep 1.5
+grep -Fqx 'swaymsg -q output * power off' "$LID_LOG" || fail 'plugging in after a wake-up did not lock'
+logind LidClosed false
+wait "$watcher"
+[[ "$(grep -Fxc 'systemctl suspend' "$LID_LOG")" == 1 ]] || fail 'charger did not stop suspending'
 
 # Ignore, system and unknown logind state.
 lid close ignore ignore lock
@@ -178,4 +212,4 @@ logind LidClosed false
 SWAY_NOIR_DIR="$profile" sh -c "$command"
 expect_log $'lock \nswaymsg -q output * power off' 'binding did not pass the lock command intact'
 
-printf 'PASS: lid actions by power source, unplug and undock watcher, inhibitor, validation and option passing\n'
+printf 'PASS: lid actions by power source, unplug, undock and wake-up watcher, inhibitor, validation and option passing\n'
