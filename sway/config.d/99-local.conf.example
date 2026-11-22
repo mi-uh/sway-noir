@@ -16,6 +16,11 @@
 # set $idle_lock_timeout 300
 # set $locked_display_off_timeout 30
 
+# Lid closed: on the charger only lock and turn displays off; on battery lock
+# and suspend. Values: suspend, lock, ignore, system. Log out and in to apply:
+# set $lid_ac_action lock
+# set $lid_battery_action suspend
+
 # Disable Gammastep by replacing its startup command with a no-op:
 # set $gammastep_command true
 

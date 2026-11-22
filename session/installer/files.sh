@@ -44,6 +44,7 @@ initialize_file_registry() {
     register_profile_file session/theme 755
     register_profile_file session/lock-screen 755
     register_profile_file session/idle-display 755
+    register_profile_file session/lid-switch 755
     register_profile_file session/dependencies.sh
     register_profile_file sway/config
     register_profile_file sway/config.d/20-outputs.conf

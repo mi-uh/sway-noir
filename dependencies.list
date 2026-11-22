@@ -18,6 +18,8 @@ profile|command|dbus-update-activation-environment|dbus-tools|dbus-bin|dbus
 profile|command|systemctl|systemd|systemd|systemd
 profile|command|systemd-run|systemd|systemd|systemd
 profile|command|systemd-analyze|systemd|systemd|systemd
+profile|command|systemd-inhibit|systemd|systemd|systemd
+profile|command|busctl|systemd|systemd|systemd
 feature|command|gammastep|gammastep|gammastep|gammastep
 feature|command|brightnessctl|brightnessctl|brightnessctl|brightnessctl
 feature|command|playerctl|playerctl|playerctl|playerctl
