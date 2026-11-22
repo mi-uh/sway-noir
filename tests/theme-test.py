@@ -11,7 +11,6 @@ import subprocess
 import tempfile
 import time
 import unittest
-import xml.etree.ElementTree as ET
 
 from waybar_config import load_waybar_config
 
@@ -397,16 +396,8 @@ class Themes(unittest.TestCase):
                 self.assertEqual(local.read_text(), original)
                 if theme == "praxis":
                     # Custom command output is text, so pad a string, not an int.
-                    labels = ET.fromstring(f'<root>{gpu["format"].format("7")}</root>').findall("span")
-                    self.assertEqual(labels[0].text, "GPU")
-                    self.assertEqual(labels[0].get("size"), "small")
-                    self.assertEqual(labels[0].get("foreground"), "#a39b89")
-                    self.assertEqual(labels[1].text, "07")
-                    self.assertEqual(labels[1].get("weight"), "semibold")
-                    composite = ET.fromstring(
-                        f'<root>{gpu["format"].format("12 · 54°")}</root>'
-                    ).findall("span")
-                    self.assertEqual(composite[1].text, "12 · 54°")
+                    self.assertEqual(gpu["format"].format("7"), "GPU 07")
+                    self.assertEqual(gpu["format"].format("12 · 54°"), "GPU 12 · 54°")
                 self.assert_complete()
         self.assertFalse(self.log.exists())
 
@@ -620,12 +611,9 @@ class Themes(unittest.TestCase):
             for key, value in config[module].items():
                 if key == "format" or key.startswith("format-"):
                     with self.subTest(module=module, key=key):
+                        # Plain text keeps built-in and user modules in one CSS font style.
                         self.assertNotIn("\n", value)
-                        self.assertIn('foreground="#a39b89"', value)
-                        labels = ET.fromstring(f"<root>{value}</root>").findall("span")
-                        self.assertEqual(len(labels), 2)
-                        self.assertEqual(labels[0].get("size"), "small")
-                        self.assertEqual(labels[1].get("weight"), "semibold")
+                        self.assertNotIn("<", value)
         css = (self.current / "waybar/style.css").read_text()
         self.assertIn('@define-color accent #d5b36a;', (self.current / "waybar/colors.css").read_text())
         self.assertIn('font-family: "IBM Plex Sans", sans-serif;', css)
