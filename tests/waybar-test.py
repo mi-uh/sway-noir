@@ -203,6 +203,27 @@ class WaybarTests(unittest.TestCase):
                 self.assertEqual(tray["left"], 10)
                 self.assertEqual(tray["right"], 10)
 
+    def test_status_text_shares_one_font_style_except_clock(self):
+        modules = ("pulseaudio", "network", "battery", "memory", "cpu",
+                   "custom/cpu", "custom/gpu")
+        for theme, config in self.configurations.items():
+            for module in modules:
+                for key, value in config[module].items():
+                    if key == "format" or key.startswith("format-"):
+                        with self.subTest(theme=theme, module=module, key=key):
+                            # Markup would make user-added modules look different.
+                            self.assertNotIn("<", value)
+            css = re.sub(r"/\*[\s\S]*?\*/", "", self.styles[theme])
+            for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+                selectors = [selector.strip() for selector in selectors.split(",")]
+                if "font-" not in body or "*" in selectors:
+                    continue
+                for selector in selectors:
+                    with self.subTest(theme=theme, selector=selector):
+                        self.assertFalse(selector.startswith(tuple(
+                            f"#{module.replace('/', '-')}" for module in (*modules, "tray")
+                        )) or ".modules-right" in selector)
+
     def test_workspaces_mirror_the_status_separators(self):
         for theme, css in self.styles.items():
             css = re.sub(r"/\*[\s\S]*?\*/", "", css)

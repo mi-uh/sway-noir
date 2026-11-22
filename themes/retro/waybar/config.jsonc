@@ -5,23 +5,23 @@
   "margin-left": 0,
   "margin-right": 0,
   "sway/window": {"max-length": 36},
-  "cpu": {"format": "CPU:{usage}"},
-  "custom/cpu": {"format": "CPU:{}"},
-  "memory": {"format": "MEM:{percentage}"},
-  "custom/gpu": {"format": "GPU:{}"},
+  "cpu": {"format": "CPU {usage}"},
+  "custom/cpu": {"format": "CPU {}"},
+  "memory": {"format": "MEM {percentage}"},
+  "custom/gpu": {"format": "GPU {}"},
   "network": {
-    "format-wifi": "NET:{signalStrength}",
-    "format-ethernet": "NET:UP",
-    "format-disconnected": "NET:DOWN"
+    "format-wifi": "NET {signalStrength}",
+    "format-ethernet": "NET UP",
+    "format-disconnected": "NET DOWN"
   },
   "pulseaudio": {
-    "format": "VOL:{volume}",
-    "format-muted": "VOL:MUTE"
+    "format": "VOL {volume}",
+    "format-muted": "VOL MUTE"
   },
   "battery": {
-    "format": "PWR:{capacity}",
-    "format-charging": "PWR:{capacity}+",
-    "format-plugged": "PWR:{capacity}+",
-    "format-full": "PWR:FULL"
+    "format": "PWR {capacity}",
+    "format-charging": "PWR {capacity}+",
+    "format-plugged": "PWR {capacity}+",
+    "format-full": "PWR FULL"
   }
 }
