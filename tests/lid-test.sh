@@ -80,11 +80,34 @@ logind LidClosed false
 wait "$watcher"
 ! grep -Fq 'systemctl' "$LID_LOG" || fail 'opening the lid still suspended'
 
-# Docked, ignore, system and unknown logind state.
+# Docked: nothing happens until the laptop is undocked with the lid closed.
 logind Docked true
-lid close suspend suspend lock
-expect_log '' 'docked laptop was not left alone'
+logind LidClosed true
+logind OnExternalPower false
+: > "$LID_LOG"
+"$profile/session/lid-switch" close lock suspend lock &
+watcher=$!
+sleep 0.5
+[[ ! -s "$LID_LOG" ]] || fail 'docked laptop was not left alone'
 logind Docked false
+wait "$watcher"
+expect_log 'systemctl suspend' 'undocking on battery did not apply the battery action'
+# Undocking on the charger applies the charger action and keeps watching.
+logind Docked true
+logind OnExternalPower true
+: > "$LID_LOG"
+"$profile/session/lid-switch" close lock suspend lock &
+watcher=$!
+sleep 0.5
+logind Docked false
+sleep 1.5
+grep -Fqx 'swaymsg -q output * power off' "$LID_LOG" || fail 'undocking on the charger did not lock'
+logind OnExternalPower false
+wait "$watcher"
+grep -Fqx 'systemctl suspend' "$LID_LOG" || fail 'unplugging after undocking did not suspend'
+logind LidClosed false
+
+# Ignore, system and unknown logind state.
 lid close ignore ignore lock
 expect_log '' 'ignore action did something'
 lid close system system lock
@@ -155,4 +178,4 @@ logind LidClosed false
 SWAY_NOIR_DIR="$profile" sh -c "$command"
 expect_log $'lock \nswaymsg -q output * power off' 'binding did not pass the lock command intact'
 
-printf 'PASS: lid actions by power source, unplug watcher, inhibitor, validation and option passing\n'
+printf 'PASS: lid actions by power source, unplug and undock watcher, inhibitor, validation and option passing\n'

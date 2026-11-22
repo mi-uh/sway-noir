@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Sway lid-switch actions, chosen by power source. run-apps holds a logind
 # handle-lid-switch inhibitor while any action is not "system", so logind does
-# not act on the lid itself. Docked laptops are left alone, like logind does.
+# not act on the lid itself.
 
 usage() {
     printf 'Usage: %s close AC_ACTION BATTERY_ACTION LOCK_COMMAND... | open AC_ACTION BATTERY_ACTION\n' "$0" >&2
@@ -59,25 +59,34 @@ case "$event" in
     *) usage ;;
 esac
 
-! logind_true Docked || exit 0
-if ! logind_true OnExternalPower; then
-    apply "$battery_action"
-    exit 0
-fi
-apply "$ac_action"
-[[ "$battery_action" != "$ac_action" ]] || exit 0
+# The watcher reacts while the lid stays closed: unplugging the charger then
+# applies the battery action, and undocking applies the action for the power
+# source, so the laptop does not keep running in a bag.
+watch() {
+    local state="$1" interval="${SWAY_NOIR_LID_POLL_INTERVAL:-10}"
+    [[ "$interval" =~ ^[1-9][0-9]{0,2}$ ]] || interval=10
+    exec 9> "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sway-noir-lid.lock"
+    flock -n 9 || exit 0
+    while sleep "$interval" && logind_true LidClosed; do
+        if logind_true Docked; then
+            state=docked
+        elif ! logind_true OnExternalPower; then
+            # Actions must not inherit the lock, or a lock screen would hold it.
+            apply "$battery_action" 9>&-
+            exit 0
+        elif [[ "$state" == docked ]]; then
+            apply "$ac_action" 9>&-
+            state=charger
+        fi
+    done
+}
 
-# Stay responsible while the lid remains closed: unplugging the charger then
-# applies the battery action instead of leaving the laptop running in a bag.
-runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-exec 9> "$runtime_dir/sway-noir-lid.lock"
-flock -n 9 || exit 0
-interval="${SWAY_NOIR_LID_POLL_INTERVAL:-10}"
-[[ "$interval" =~ ^[1-9][0-9]{0,2}$ ]] || interval=10
-while logind_true LidClosed; do
-    if ! logind_true OnExternalPower; then
-        logind_true Docked || apply "$battery_action"
-        exit 0
-    fi
-    sleep "$interval"
-done
+# Docked laptops are left alone, like logind does, until they are undocked.
+if logind_true Docked; then
+    watch docked
+elif ! logind_true OnExternalPower; then
+    apply "$battery_action"
+else
+    apply "$ac_action"
+    [[ "$battery_action" == "$ac_action" ]] || watch charger
+fi
