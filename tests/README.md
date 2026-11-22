@@ -143,7 +143,7 @@ it is not a complete implementation of Waybar's path expansion.
 | Test audio keys and authentication prompts | Controls work; no duplicate agent |
 | Capture region/full screen; cancel selection | Correct files; no file on cancellation |
 | Test screen sharing, suspend/resume, logout/login | Portals work; screen locks; theme persists |
-| Set `$lid_ac_action lock` and `$lid_battery_action suspend`; log in again; close the lid on charger, then unplug it while closed | Charger: locked, displays off, still running; unplugged: suspends within 10 s; reopened: locked |
+| Set `$lid_ac_action lock` and `$lid_battery_action suspend`; log in again; close the lid on charger, then unplug it while closed; repeat docked, then undock | Charger: locked, displays off, still running; docked: unchanged; unplugged or undocked on battery: suspends within 10 s; reopened: locked |
 
 For release validation, record the distribution/version and the result of each
 check. In particular, lock manually with `Super+Shift+x` and confirm that only
