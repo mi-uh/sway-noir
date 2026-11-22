@@ -1,0 +1,83 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+# Sway lid-switch actions, chosen by power source. run-apps holds a logind
+# handle-lid-switch inhibitor while any action is not "system", so logind does
+# not act on the lid itself. Docked laptops are left alone, like logind does.
+
+usage() {
+    printf 'Usage: %s close AC_ACTION BATTERY_ACTION LOCK_COMMAND... | open AC_ACTION BATTERY_ACTION\n' "$0" >&2
+    printf 'Actions: suspend, lock, ignore, system\n' >&2
+    exit 2
+}
+
+valid_action() { [[ "$1" =~ ^(suspend|lock|ignore|system)$ ]]; }
+
+logind_true() {
+    local reply
+    reply="$(busctl get-property org.freedesktop.login1 /org/freedesktop/login1 \
+        org.freedesktop.login1.Manager "$1" 2>/dev/null)" || return 1
+    [[ "$reply" == 'b true' ]]
+}
+
+apply() {
+    case "$1" in
+        suspend)
+            # swayidle's before-sleep hook locks the screen before sleeping.
+            systemctl suspend
+            ;;
+        lock)
+            "${lock_command[@]}" || printf 'Warning: lock command failed.\n' >&2
+            swaymsg -q 'output * power off'
+            ;;
+        ignore) ;;
+    esac
+}
+
+(( $# >= 3 )) || usage
+event="$1"
+ac_action="$2"
+battery_action="$3"
+shift 3
+if ! valid_action "$ac_action" || ! valid_action "$battery_action"; then
+    usage
+fi
+[[ "$ac_action" != system || "$battery_action" != system ]] || exit 0
+# Only one side managed: logind cannot act while inhibited, so use its default.
+[[ "$ac_action" != system ]] || ac_action=suspend
+[[ "$battery_action" != system ]] || battery_action=suspend
+
+case "$event" in
+    open)
+        (( $# == 0 )) || usage
+        exec swaymsg -q 'output * power on'
+        ;;
+    close)
+        (( $# > 0 )) || usage
+        lock_command=("$@")
+        ;;
+    *) usage ;;
+esac
+
+! logind_true Docked || exit 0
+if ! logind_true OnExternalPower; then
+    apply "$battery_action"
+    exit 0
+fi
+apply "$ac_action"
+[[ "$battery_action" != "$ac_action" ]] || exit 0
+
+# Stay responsible while the lid remains closed: unplugging the charger then
+# applies the battery action instead of leaving the laptop running in a bag.
+runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+exec 9> "$runtime_dir/sway-noir-lid.lock"
+flock -n 9 || exit 0
+interval="${SWAY_NOIR_LID_POLL_INTERVAL:-10}"
+[[ "$interval" =~ ^[1-9][0-9]{0,2}$ ]] || interval=10
+while logind_true LidClosed; do
+    if ! logind_true OnExternalPower; then
+        logind_true Docked || apply "$battery_action"
+        exit 0
+    fi
+    sleep "$interval"
+done

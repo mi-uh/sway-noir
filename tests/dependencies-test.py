@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CORE = (
     "dbus-update-activation-environment", "flock", "foot", "fuzzel", "mako", "makoctl", "sway",
     "swaybg", "swayidle", "swaylock", "swaymsg", "swaynag", "systemctl",
-    "systemd-analyze", "systemd-run", "waybar",
+    "systemd-analyze", "systemd-run", "systemd-inhibit", "busctl", "waybar",
 )
 PORTAL_UNITS = (
     "xdg-desktop-portal.service", "xdg-desktop-portal-gtk.service",

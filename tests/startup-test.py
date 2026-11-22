@@ -41,6 +41,8 @@ class StartupCommand(unittest.TestCase):
                     values = {
                         "idle_lock_timeout": "600",
                         "locked_display_off_timeout": "60",
+                        "lid_ac_action": "system",
+                        "lid_battery_action": "system",
                         "lock_command": "lock-screen --ready",
                         "audio_settings_command": "audio-settings --option",
                         "polkit_agent_command": "polkit-agent --option",
@@ -60,6 +62,7 @@ class StartupCommand(unittest.TestCase):
                     arguments = log.read_bytes().decode().split("\0")[:-1]
                     self.assertEqual(arguments, [
                         "--idle-lock", "600", "--locked-display-off", "60",
+                        "--lid-ac", "system", "--lid-battery", "system",
                         values["lock_command"], values["audio_settings_command"],
                         values["polkit_agent_command"], *gammastep,
                     ])

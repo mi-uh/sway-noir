@@ -77,6 +77,7 @@ keep them**; managed files there are replaced on update.
 | Keyboard, monitors, bindings, display performance | `sway/config.d/99-local.conf` ([example](sway/config.d/99-local.conf.example)) | `Super+Shift+c` |
 | Startup programs, audio-settings command | `sway/config.d/99-local.conf` | Log out and in |
 | Automatic lock (default 10 min), displays off while locked (default 1 min) | `sway/config.d/99-local.conf` | Log out and in |
+| Lid action on charger and on battery (default: host setting) | `sway/config.d/99-local.conf` | Log out and in |
 | Waybar modules and options | `waybar/local.jsonc` ([example](waybar/local.jsonc.example)) | Reselect the theme |
 | Own themes | `themes/ID/` | Theme menu |
 

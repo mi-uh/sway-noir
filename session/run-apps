@@ -61,6 +61,19 @@ if (( display_off_timeout > 0 )); then
 fi
 idle_arguments+=(before-sleep "$lock_command")
 swayidle "${idle_arguments[@]}" &
+
+valid_lid_action() { [[ "$1" =~ ^(suspend|lock|ignore|system)$ ]]; }
+lid_ac_action="${SWAY_NOIR_LID_AC_ACTION:-system}"
+lid_battery_action="${SWAY_NOIR_LID_BATTERY_ACTION:-system}"
+if ! valid_lid_action "$lid_ac_action" || ! valid_lid_action "$lid_battery_action"; then
+    printf 'Warning: invalid lid actions %s/%s; logind handles the lid.\n' \
+        "$lid_ac_action" "$lid_battery_action" >&2
+elif [[ "$lid_ac_action" != system || "$lid_battery_action" != system ]]; then
+    # Keep logind from acting on the lid; Sway's lid binding runs lid-switch.
+    # If PolicyKit denies the inhibitor, logind keeps handling the lid.
+    systemd-inhibit --what=handle-lid-switch --who='Sway Noir' \
+        --why='Lid actions by power source' --mode=block sleep infinity &
+fi
 waybar \
     --config "$theme_dir/waybar/config.jsonc" \
     --style "$theme_dir/waybar/style.css" &

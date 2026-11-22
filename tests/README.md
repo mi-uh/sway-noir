@@ -143,13 +143,13 @@ it is not a complete implementation of Waybar's path expansion.
 | Test audio keys and authentication prompts | Controls work; no duplicate agent |
 | Capture region/full screen; cancel selection | Correct files; no file on cancellation |
 | Test screen sharing, suspend/resume, logout/login | Portals work; screen locks; theme persists |
+| Set `$lid_ac_action lock` and `$lid_battery_action suspend`; log in again; close the lid on charger, then unplug it while closed | Charger: locked, displays off, still running; unplugged: suspends within 10 s; reopened: locked |
 
 For release validation, record the distribution/version and the result of each
 check. In particular, lock manually with `Super+Shift+x` and confirm that only
 authentication unlocks it. Then suspend from an unlocked session, resume, and
 confirm that the desktop is already locked before accepting input. Also check
 that no duplicate Waybar, Mako or authentication agent remains after a new login.
-Automatic locking after inactivity is not configured by this profile.
 
 CI checks Fedora package/layout compatibility, not graphical operation.
 For graphically tested platforms, see the [README](../README.md#install).
