@@ -72,9 +72,19 @@ window#waybar.bottom {
     font-weight: bold;
 }
 
+/* Mirror the status separators at the outer edge of the workspaces. */
+#workspaces {
+    padding-left: 6px;
+    border-left: 1px solid @border;
+}
+
+#mode {
+    padding: 0 9px;
+    border-left: 1px solid @border;
+}
+
 /* Include new right-hand status modules, without styling their nested widgets. */
 .modules-right > widget > *,
-#mode,
 #tray,
 #pulseaudio,
 #network,
@@ -82,32 +92,17 @@ window#waybar.bottom {
 #memory,
 #battery,
 #clock {
-    padding: 0 11px;
+    padding: 0 9px;
     border-left: 1px solid @border;
 }
 
-/* Separate VOL/NET/PWR at their right edge; keep CPU/GPU/memory together. */
-#network,
-#battery,
-#cpu,
-#custom-cpu,
-#custom-gpu,
-#memory {
-    border-left: none;
+#tray {
+    padding: 0 10px;
 }
 
-#pulseaudio,
-#network,
-#battery {
+/* Close the row after the last module, whatever the order. */
+window#waybar .modules-right > widget:last-child > * {
     border-right: 1px solid @border;
-}
-
-/* Neighboring hardware readings share one normal status gutter, not two. */
-#cpu,
-#custom-cpu,
-#custom-gpu,
-#memory {
-    padding: 0 5px 0 6px;
 }
 
 #pulseaudio.muted,
