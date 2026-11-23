@@ -144,6 +144,20 @@ class WaybarTests(unittest.TestCase):
                         text = re.sub(r"<[^>]*>", "", value)
                         self.assertEqual(re.match(r"[A-Z]+", text)[0], label)
 
+    def test_status_formats_are_identical_in_every_theme(self):
+        modules = ("pulseaudio", "network", "battery", "memory", "cpu",
+                   "custom/cpu", "custom/gpu")
+
+        def formats(config):
+            return {(module, key): value for module in modules
+                    for key, value in config[module].items()
+                    if key == "format" or key.startswith("format-")}
+
+        expected = formats(self.configurations["rain"])
+        for theme, config in self.configurations.items():
+            with self.subTest(theme=theme):
+                self.assertEqual(formats(config), expected)
+
     def test_temperature_degree_sign_is_preserved_by_every_theme(self):
         for theme, config in self.configurations.items():
             for module in ("custom/cpu", "custom/gpu"):
