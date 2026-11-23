@@ -395,8 +395,9 @@ class Themes(unittest.TestCase):
                 self.assertFalse(gpu["tooltip"])
                 self.assertEqual(local.read_text(), original)
                 if theme == "praxis":
-                    # Custom command output is text, so pad a string, not an int.
-                    self.assertEqual(gpu["format"].format("7"), "GPU 07")
+                    # Padding the whole helper text would only pad usage without temperature.
+                    self.assertEqual(gpu["format"].format("7"), "GPU 7")
+                    self.assertEqual(gpu["format"].format("7 · 54°"), "GPU 7 · 54°")
                     self.assertEqual(gpu["format"].format("12 · 54°"), "GPU 12 · 54°")
                 self.assert_complete()
         self.assertFalse(self.log.exists())

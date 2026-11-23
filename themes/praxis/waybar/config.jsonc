@@ -12,7 +12,7 @@
     "justify": "center"
   },
   "custom/cpu": {
-    "format": "CPU {:0>2}",
+    "format": "CPU {}",
     "align": 0.5,
     "justify": "center"
   },
@@ -23,7 +23,7 @@
     "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
   },
   "custom/gpu": {
-    "format": "GPU {:0>2}",
+    "format": "GPU {}",
     "align": 0.5,
     "justify": "center"
   },
