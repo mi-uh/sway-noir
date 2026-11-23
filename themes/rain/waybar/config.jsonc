@@ -10,29 +10,6 @@
       "(.*) - Visual Studio Code": "$1 - VS Code"
     }
   },
-  "pulseaudio": {
-    "format": "VOL {volume}",
-    "format-muted": "VOL muted"
-  },
-  "network": {
-    "format-wifi": "NET {signalStrength}",
-    "format-ethernet": "NET",
-    "format-disconnected": "NET down",
-    "max-length": 50
-  },
-  "cpu": {
-    "format": "CPU {usage}"
-  },
-  "custom/cpu": {"format": "CPU {}"},
-  "memory": {
-    "format": "MEM {percentage}",
-    "tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"
-  },
-  "custom/gpu": {"format": "GPU {}"},
-  "battery": {
-    "format": "PWR {capacity}",
-    "format-charging": "PWR {capacity}+",
-    "format-plugged": "PWR {capacity}+",
-    "format-full": "PWR full"
-  }
+  "network": {"max-length": 50},
+  "memory": {"tooltip-format": "{used:0.1f} GiB / {total:0.1f} GiB"}
 }

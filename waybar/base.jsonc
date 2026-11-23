@@ -17,29 +17,42 @@
   "sway/window": {"format": "{title}"},
   "tray": {"spacing": 8},
   "pulseaudio": {
+    "format": "VOL {volume}",
+    "format-muted": "VOL MUTE",
     "scroll-step": 2,
     "on-click": "\"$SWAY_NOIR_DIR/session/optional-command\" --shell audio-settings \"${SWAY_NOIR_AUDIO_SETTINGS_COMMAND-pavucontrol}\""
   },
   "network": {
+    "format-wifi": "NET {signalStrength}",
+    "format-ethernet": "NET ETH",
+    "format-disconnected": "NET OFF",
     "tooltip-format-wifi": "{essid} – {ipaddr}/{cidr}",
     "tooltip-format-ethernet": "{ifname} – {ipaddr}/{cidr}",
     "tooltip-format-disconnected": "Disconnected"
   },
-  "cpu": {"interval": 3, "tooltip": false},
+  "cpu": {"format": "CPU {usage}", "interval": 3, "tooltip": false},
   "custom/cpu": {
+    "format": "CPU {}",
     "exec": "\"$SWAY_NOIR_DIR/session/hardware-status\" cpu",
     "interval": 3,
     "tooltip": false
   },
   "custom/gpu": {
+    "format": "GPU {}",
     "exec": "\"$SWAY_NOIR_DIR/session/hardware-status\" gpu",
     "interval": 3,
     "tooltip": false
   },
-  "memory": {"interval": 5},
+  "memory": {"format": "MEM {percentage}", "interval": 5},
   "clock": {
     "format": "{:%m-%d · %H:%M}",
     "tooltip-format": "<tt><small>{calendar}</small></tt>"
   },
-  "battery": {"states": {"warning": 30, "critical": 15}}
+  "battery": {
+    "format": "PWR {capacity}",
+    "format-charging": "PWR {capacity}+",
+    "format-plugged": "PWR {capacity}+",
+    "format-full": "PWR FULL",
+    "states": {"warning": 30, "critical": 15}
+  }
 }
