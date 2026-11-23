@@ -214,15 +214,24 @@ class WaybarTests(unittest.TestCase):
                             # Markup would make user-added modules look different.
                             self.assertNotIn("<", value)
             css = re.sub(r"/\*[\s\S]*?\*/", "", self.styles[theme])
+            css = re.sub(r"@(?:define-color|import)\b[^;]+;", "", css)
+            status_ids = {module.replace("/", "-") for module in (*modules, "tray")}
+            clock_weight = False
             for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
                 selectors = [selector.strip() for selector in selectors.split(",")]
-                if "font-" not in body or "*" in selectors:
+                if "font-" not in body:
                     continue
+                clock_weight |= "font-weight" in body and any(
+                    "clock" in re.findall(r"#([\w-]+)", selector) for selector in selectors)
                 for selector in selectors:
+                    if selector == "*":
+                        continue
                     with self.subTest(theme=theme, selector=selector):
-                        self.assertFalse(selector.startswith(tuple(
-                            f"#{module.replace('/', '-')}" for module in (*modules, "tray")
-                        )) or ".modules-right" in selector)
+                        # Any position in a compound selector would restyle the module.
+                        self.assertFalse(status_ids & set(re.findall(r"#([\w-]+)", selector))
+                                         or ".modules-right" in selector)
+            with self.subTest(theme=theme, emphasis="clock"):
+                self.assertTrue(clock_weight)
 
     def test_workspaces_mirror_the_status_separators(self):
         for theme, css in self.styles.items():
