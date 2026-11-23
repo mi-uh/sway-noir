@@ -511,10 +511,13 @@ class Themes(unittest.TestCase):
         (theme / "waybar/config.jsonc").write_text(json.dumps({
             "include": '"${SWAY_NOIR_THEME_DIR}/waybar/base.jsonc"',
             "height": 27, "cpu": {"format": "LOAD {usage}"},
+            "clock": {"tooltip-format": "<span foreground='{{muted}}'>{calendar}</span>"},
         }))
         self.run_theme("set", "personal", "--no-reload")
         config = load_waybar_config(self.current / "waybar/config.jsonc")
         self.assertEqual(config["height"], 27)
+        # Theme-owned Waybar templates receive the palette like other templates.
+        self.assertRegex(config["clock"]["tooltip-format"], r"foreground='#[0-9a-f]{6}'")
         self.assertEqual(config["cpu"], {"format": "LOAD {usage}", "interval": 3, "tooltip": False})
         self.assertEqual(config["position"], "top")
         self.assertIn("on-click", config["pulseaudio"])
