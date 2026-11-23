@@ -219,7 +219,8 @@ class WaybarTests(unittest.TestCase):
             clock_weight = False
             for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
                 selectors = [selector.strip() for selector in selectors.split(",")]
-                if "font-" not in body:
+                # Match both longhand properties and the font shorthand.
+                if not re.search(r"(?<![\w-])font(?:-[\w-]+)?\s*:", body):
                     continue
                 clock_weight |= "font-weight" in body and any(
                     "clock" in re.findall(r"#([\w-]+)", selector) for selector in selectors)
